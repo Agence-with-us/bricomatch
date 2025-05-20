@@ -3,13 +3,14 @@ import authReducer from "./slices/authSlice";
 import usersReducer from "./slices/usersSlice";
 import appointmentsReducer from "./slices/appointmentsSlice";
 import invoicesReducer from "./slices/invoicesSlice";
-
+import statsReducer from "./slices/statsSlice"; 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     users: usersReducer,
     appointments: appointmentsReducer,
     invoices: invoicesReducer,
+     stats: statsReducer, 
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
