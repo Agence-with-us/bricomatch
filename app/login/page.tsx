@@ -23,6 +23,7 @@ import { Building2 } from "lucide-react";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading">("idle");
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { toast } = useToast();
@@ -34,6 +35,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setStatus("loading");
 
     try {
       await dispatch(signIn({ email, password })).unwrap();
@@ -44,6 +46,7 @@ export default function LoginPage() {
         description: error.message || "Veuillez vérifier vos identifiants",
         variant: "destructive",
       });
+      setStatus("idle");
     }
   };
 
