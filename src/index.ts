@@ -25,7 +25,7 @@ console.log("FIREBASE_PRIVATE_KEY:", process.env.FIREBASE_PRIVATE_KEY?.substring
 import './config/firebase'; // This alone initializes Firebase
 import { clientErrorMiddleware } from './middleware/clientErrorMiddleware';
 import { CronService } from './services/cronService';
-initializeRedis();
+//initializeRedis();
 initializeStripe();
 
 // Démarrer les jobs cron
