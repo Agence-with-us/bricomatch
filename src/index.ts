@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import { initializeRedis } from './config/redis';
+//import { initializeRedis } from './config/redis';
 import { initializeStripe } from './config/stripe';
 import userRoutes from './routes/userRoutes';
 import serviceRoutes from './routes/serviceRoutes';

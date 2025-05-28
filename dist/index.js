@@ -9,7 +9,7 @@ const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const redis_1 = require("./config/redis");
+//import { initializeRedis } from './config/redis';
 const stripe_1 = require("./config/stripe");
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const serviceRoutes_1 = __importDefault(require("./routes/serviceRoutes"));
@@ -27,7 +27,7 @@ console.log("FIREBASE_PRIVATE_KEY:", ((_a = process.env.FIREBASE_PRIVATE_KEY) ==
 require("./config/firebase"); // This alone initializes Firebase
 const clientErrorMiddleware_1 = require("./middleware/clientErrorMiddleware");
 const cronService_1 = require("./services/cronService");
-(0, redis_1.initializeRedis)();
+//initializeRedis();
 (0, stripe_1.initializeStripe)();
 // Démarrer les jobs cron
 const cronService = cronService_1.CronService.getInstance();
