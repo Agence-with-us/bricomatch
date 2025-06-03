@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.usersCollection = exports.notificationsCollection = exports.appointmentsCollection = exports.getAuth = exports.getStorage = exports.getFirestore = void 0;
+exports.availabilitiesCollection = exports.usersCollection = exports.notificationsCollection = exports.appointmentsCollection = exports.getAuth = exports.getStorage = exports.getFirestore = void 0;
 const firebase_admin_1 = __importDefault(require("firebase-admin"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
@@ -31,3 +31,4 @@ exports.getAuth = getAuth;
 exports.appointmentsCollection = (0, exports.getFirestore)().collection('appointments');
 exports.notificationsCollection = (0, exports.getFirestore)().collection('notifications');
 exports.usersCollection = (0, exports.getFirestore)().collection('users');
+exports.availabilitiesCollection = (0, exports.getFirestore)().collection('availabilities');

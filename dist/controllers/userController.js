@@ -12,13 +12,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createStripeConnectAccount = void 0;
+exports.deleteMyAccount = exports.createStripeConnectAccount = void 0;
 const firebase_1 = require("../config/firebase");
 const stripeHelpers_1 = require("../helpers/stripeHelpers");
 const firebase_admin_1 = __importDefault(require("firebase-admin"));
 const ClientError_1 = require("../helpers/ClientError");
 const email_1 = require("../config/email");
 const emailTemplates_1 = require("../templates/emailTemplates");
+const userService_1 = require("../services/userService");
 const createStripeConnectAccount = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     try {
@@ -94,3 +95,34 @@ const createStripeConnectAccount = (req, res, next) => __awaiter(void 0, void 0,
     }
 });
 exports.createStripeConnectAccount = createStripeConnectAccount;
+// Contrôleur pour supprimer son propre compte (utilisateur connecté)
+const deleteMyAccount = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        // Vérifier l'authentification
+        if (!req.user) {
+            throw new ClientError_1.ClientError("Authentification requise", 401);
+        }
+        const userId = req.user.id;
+        console.log(`🗑️ Demande suppression compte par utilisateur: ${userId}`);
+        // Vérifier que l'utilisateur existe
+        const userDoc = yield firebase_1.usersCollection.doc(userId).get();
+        if (!userDoc.exists) {
+            throw new ClientError_1.ClientError("Utilisateur introuvable", 404);
+        }
+        // S'assurer que le compte deleted-account existe
+        yield (0, userService_1.ensureDeletedAccountExists)();
+        // Supprimer le compte
+        yield (0, userService_1.deleteUserAccount)(userId);
+        console.log(`✅ Compte supprimé avec succès: ${userId}`);
+        return res.status(200).json({
+            success: true,
+            message: "Votre compte a été supprimé avec succès"
+        });
+    }
+    catch (error) {
+        console.error(`❌ Erreur suppression compte ${(_a = req.user) === null || _a === void 0 ? void 0 : _a.id}:`, error);
+        next(error);
+    }
+});
+exports.deleteMyAccount = deleteMyAccount;

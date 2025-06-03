@@ -30,3 +30,5 @@ export const getAuth = (): admin.auth.Auth => admin.auth();
 export const appointmentsCollection = getFirestore().collection('appointments');
 export const notificationsCollection = getFirestore().collection('notifications');
 export const usersCollection = getFirestore().collection('users');
+export const availabilitiesCollection = getFirestore().collection('availabilities');
+

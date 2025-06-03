@@ -7,6 +7,7 @@ import { AuthRequest } from '../middleware/auth';
 import { ClientError } from '../helpers/ClientError';
 import { sendEmail } from '../config/email';
 import { getCompleteProfileTemplate } from '../templates/emailTemplates';
+import { deleteUserAccount, ensureDeletedAccountExists } from '../services/userService';
 
 
 
@@ -92,5 +93,41 @@ export const createStripeConnectAccount = async (req: AuthRequest, res: Response
     });
 
     next(error)
+  }
+};
+
+// Contrôleur pour supprimer son propre compte (utilisateur connecté)
+export const deleteMyAccount = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    // Vérifier l'authentification
+    if (!req.user) {
+      throw new ClientError("Authentification requise", 401);
+    }
+
+    const userId = req.user.id;
+    console.log(`🗑️ Demande suppression compte par utilisateur: ${userId}`);
+
+    // Vérifier que l'utilisateur existe
+    const userDoc = await usersCollection.doc(userId).get();
+    if (!userDoc.exists) {
+      throw new ClientError("Utilisateur introuvable", 404);
+    }
+
+    // S'assurer que le compte deleted-account existe
+    await ensureDeletedAccountExists();
+
+    // Supprimer le compte
+    await deleteUserAccount(userId);
+
+    console.log(`✅ Compte supprimé avec succès: ${userId}`);
+
+    return res.status(200).json({
+      success: true,
+      message: "Votre compte a été supprimé avec succès"
+    });
+
+  } catch (error: any) {
+    console.error(`❌ Erreur suppression compte ${req.user?.id}:`, error);
+    next(error);
   }
 };
