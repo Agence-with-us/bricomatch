@@ -6,6 +6,7 @@ const db = getFirestore();
 const usersCollection = db.collection('users');
 
 // Get user by ID
+//@ts-ignore
 export const getUserById = async (id: string): Promise<UserLocal | null> => {
   try {
     // // Check cache first
@@ -36,6 +37,7 @@ export const getUserById = async (id: string): Promise<UserLocal | null> => {
 };
 
 // Get multiple users by their IDs
+//@ts-ignore
 export const getUsersByIds = async (ids: string[]): Promise<UserLocal[]> => {
   try {
     // if (!ids.length) {

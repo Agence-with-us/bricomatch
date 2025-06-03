@@ -16,7 +16,7 @@ exports.evaluerAppointmentService = exports.autoriserPaiementAppointmentService 
 const firebase_1 = require("../config/firebase");
 const firebase_admin_1 = __importDefault(require("firebase-admin"));
 const types_1 = require("../types");
-const redis_1 = require("../config/redis");
+// import { invalidateCache } from '../config/redis';
 const ClientError_1 = require("../helpers/ClientError");
 const paymentService_1 = require("./paymentService");
 const AppointmentHelpers_1 = require("../helpers/AppointmentHelpers");
@@ -95,11 +95,11 @@ const confirmAppointment = (appointmentId, proId) => __awaiter(void 0, void 0, v
         };
         yield appointmentRef.update(updatedAppointment);
         // Invalide les caches liés pour rafraîchir les données
-        yield Promise.all([
-            invalidateUserAppointmentsCache(appointment.proId),
-            invalidateUserAppointmentsCache(appointment.clientId),
-            (0, redis_1.invalidateCache)(`appointment:${appointmentId}`)
-        ]);
+        // await Promise.all([
+        //   invalidateUserAppointmentsCache(appointment.proId),
+        //   invalidateUserAppointmentsCache(appointment.clientId),
+        //   invalidateCache(`appointment:${appointmentId}`)
+        // ]);
         return Object.assign(Object.assign({}, appointment), updatedAppointment);
     }
     catch (error) {
@@ -152,7 +152,7 @@ const updateAppointmentStatus = (appointment, newStatus, notificationMessage) =>
         appointmentId: appointment.id,
     });
     // Invalidation du cache
-    yield (0, redis_1.invalidateCache)(`appointment:${appointment.id}`);
+    // await invalidateCache(`appointment:${appointment.id}`);
     return Object.assign(Object.assign({}, appointment), { status: newStatus, updatedAt });
 });
 exports.updateAppointmentStatus = updateAppointmentStatus;
@@ -185,11 +185,11 @@ const autoriserPaiementAppointmentService = (appointmentId, clientId) => __await
         };
         yield appointmentRef.update(updatedData);
         // Invalider les caches liés
-        yield Promise.all([
-            invalidateUserAppointmentsCache(appointment.clientId),
-            invalidateUserAppointmentsCache(appointment.proId),
-            (0, redis_1.invalidateCache)(`appointment:${appointmentId}`)
-        ]);
+        // await Promise.all([
+        //   invalidateUserAppointmentsCache(appointment.clientId),
+        //   invalidateUserAppointmentsCache(appointment.proId),
+        //   invalidateCache(`appointment:${appointmentId}`)
+        // ]);
         return Object.assign(Object.assign({}, appointment), updatedData);
     }
     catch (error) {
@@ -240,11 +240,11 @@ const evaluerAppointmentService = (appointmentId, proId, clientId, rating) => __
             lastEvaluatedAt: firebase_admin_1.default.firestore.Timestamp.now()
         });
         // Invalider les caches liés
-        yield Promise.all([
-            (0, redis_1.invalidateCache)(`user:${appointment.clientId}:appointments:client`),
-            (0, redis_1.invalidateCache)(`user:${appointment.proId}:appointments:pro`),
-            (0, redis_1.invalidateCache)(`appointment:${appointmentId}`)
-        ]);
+        // await Promise.all([
+        //   invalidateCache(`user:${appointment.clientId}:appointments:client`),
+        //   invalidateCache(`user:${appointment.proId}:appointments:pro`),
+        //   invalidateCache(`appointment:${appointmentId}`)
+        // ]);
         return {
             appointmentId,
             proId,
@@ -262,6 +262,6 @@ const evaluerAppointmentService = (appointmentId, proId, clientId, rating) => __
 exports.evaluerAppointmentService = evaluerAppointmentService;
 // Helper function to invalidate user appointments cache
 const invalidateUserAppointmentsCache = (userId) => __awaiter(void 0, void 0, void 0, function* () {
-    yield (0, redis_1.invalidateCache)(`user:${userId}:appointments:pro`);
-    yield (0, redis_1.invalidateCache)(`user:${userId}:appointments:client`);
+    // await invalidateCache(`user:${userId}:appointments:pro`);
+    // await invalidateCache(`user:${userId}:appointments:client`);
 });

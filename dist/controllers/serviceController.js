@@ -11,23 +11,22 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getServiceById = exports.getAllServices = void 0;
 const serviceService_1 = require("../services/serviceService");
-const redis_1 = require("../config/redis");
 // Get all services
 const getAllServices = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         // Try to get from cache first
-        const cachedServices = yield (0, redis_1.getCachedData)('services');
-        if (cachedServices) {
-            return res.status(200).json({
-                success: true,
-                data: cachedServices,
-                message: 'Services retrieved from cache'
-            });
-        }
+        // const cachedServices = await getCachedData<Service[]>('services');
+        // if (cachedServices) {
+        //   return res.status(200).json({
+        //     success: true,
+        //     data: cachedServices,
+        //     message: 'Services retrieved from cache'
+        //   });
+        // }
         // If not in cache, fetch from Firestore
         const services = yield (0, serviceService_1.getServices)();
         // Store in cache
-        yield (0, redis_1.setCachedData)('services', services);
+        // await setCachedData('services', services);
         return res.status(200).json({
             success: true,
             data: services,
@@ -48,15 +47,15 @@ const getServiceById = (req, res) => __awaiter(void 0, void 0, void 0, function*
     try {
         const { id } = req.params;
         // Try to get from cache first
-        const cacheKey = `service:${id}`;
-        const cachedService = yield (0, redis_1.getCachedData)(cacheKey);
-        if (cachedService) {
-            return res.status(200).json({
-                success: true,
-                data: cachedService,
-                message: 'Service retrieved from cache'
-            });
-        }
+        // const cacheKey = `service:${id}`;
+        // const cachedService = await getCachedData<Service>(cacheKey);
+        // if (cachedService) {
+        //   return res.status(200).json({
+        //     success: true,
+        //     data: cachedService,
+        //     message: 'Service retrieved from cache'
+        //   });
+        // }
         // If not in cache, fetch from Firestore
         const service = yield (0, serviceService_1.getServiceById)(id);
         if (!service) {
@@ -66,7 +65,7 @@ const getServiceById = (req, res) => __awaiter(void 0, void 0, void 0, function*
             });
         }
         // Store in cache
-        yield (0, redis_1.setCachedData)(cacheKey, service);
+        // await setCachedData(cacheKey, service);
         return res.status(200).json({
             success: true,
             data: service,
