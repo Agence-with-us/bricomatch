@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { getServices, getServiceById as fetchServiceById } from '../services/serviceService';
-import { getCachedData, setCachedData } from '../config/redis';
+// import { getCachedData, setCachedData } from '../config/redis';
 import { Service, UserLocal } from '../types';
 import { notificationsCollection, usersCollection } from '../config/firebase';
 import { createOnboardingLink, createStripeConnectAccount } from '../helpers/stripeHelpers';
@@ -11,21 +11,21 @@ import admin from 'firebase-admin';
 export const getAllServices = async (req: Request, res: Response) => {
   try {
     // Try to get from cache first
-    const cachedServices = await getCachedData<Service[]>('services');
+    // const cachedServices = await getCachedData<Service[]>('services');
 
-    if (cachedServices) {
-      return res.status(200).json({
-        success: true,
-        data: cachedServices,
-        message: 'Services retrieved from cache'
-      });
-    }
+    // if (cachedServices) {
+    //   return res.status(200).json({
+    //     success: true,
+    //     data: cachedServices,
+    //     message: 'Services retrieved from cache'
+    //   });
+    // }
 
     // If not in cache, fetch from Firestore
     const services = await getServices();
 
     // Store in cache
-    await setCachedData('services', services);
+    // await setCachedData('services', services);
 
     return res.status(200).json({
       success: true,
@@ -47,16 +47,16 @@ export const getServiceById = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     // Try to get from cache first
-    const cacheKey = `service:${id}`;
-    const cachedService = await getCachedData<Service>(cacheKey);
+    // const cacheKey = `service:${id}`;
+    // const cachedService = await getCachedData<Service>(cacheKey);
 
-    if (cachedService) {
-      return res.status(200).json({
-        success: true,
-        data: cachedService,
-        message: 'Service retrieved from cache'
-      });
-    }
+    // if (cachedService) {
+    //   return res.status(200).json({
+    //     success: true,
+    //     data: cachedService,
+    //     message: 'Service retrieved from cache'
+    //   });
+    // }
 
     // If not in cache, fetch from Firestore
     const service = await fetchServiceById(id);
@@ -69,7 +69,7 @@ export const getServiceById = async (req: Request, res: Response) => {
     }
 
     // Store in cache
-    await setCachedData(cacheKey, service);
+    // await setCachedData(cacheKey, service);
 
     return res.status(200).json({
       success: true,

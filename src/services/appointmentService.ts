@@ -3,7 +3,7 @@ import admin from 'firebase-admin';
 
 
 import { Appointment, AppointmentStatus, UserRole } from '../types';
-import { invalidateCache } from '../config/redis';
+// import { invalidateCache } from '../config/redis';
 import { ClientError } from '../helpers/ClientError';
 import { capturePaymentIntent } from './paymentService';
 import { handleConfirmedCancellation, handlePaymentAuthorizedCancellation, validateUserAccess } from '../helpers/AppointmentHelpers';
@@ -103,11 +103,11 @@ export const confirmAppointment = async (
     await appointmentRef.update(updatedAppointment);
 
     // Invalide les caches liés pour rafraîchir les données
-    await Promise.all([
-      invalidateUserAppointmentsCache(appointment.proId),
-      invalidateUserAppointmentsCache(appointment.clientId),
-      invalidateCache(`appointment:${appointmentId}`)
-    ]);
+    // await Promise.all([
+    //   invalidateUserAppointmentsCache(appointment.proId),
+    //   invalidateUserAppointmentsCache(appointment.clientId),
+    //   invalidateCache(`appointment:${appointmentId}`)
+    // ]);
 
     return {
       ...appointment,
@@ -179,7 +179,7 @@ export const updateAppointmentStatus = async (
   });
   
   // Invalidation du cache
-  await invalidateCache(`appointment:${appointment.id}`);
+  // await invalidateCache(`appointment:${appointment.id}`);
   
   return {
     ...appointment,
@@ -229,11 +229,11 @@ export const autoriserPaiementAppointmentService = async (
     await appointmentRef.update(updatedData);
 
     // Invalider les caches liés
-    await Promise.all([
-      invalidateUserAppointmentsCache(appointment.clientId),
-      invalidateUserAppointmentsCache(appointment.proId),
-      invalidateCache(`appointment:${appointmentId}`)
-    ]);
+    // await Promise.all([
+    //   invalidateUserAppointmentsCache(appointment.clientId),
+    //   invalidateUserAppointmentsCache(appointment.proId),
+    //   invalidateCache(`appointment:${appointmentId}`)
+    // ]);
 
     return {
       ...appointment,
@@ -300,11 +300,11 @@ export const evaluerAppointmentService = async (
     });
 
     // Invalider les caches liés
-    await Promise.all([
-      invalidateCache(`user:${appointment.clientId}:appointments:client`),
-      invalidateCache(`user:${appointment.proId}:appointments:pro`),
-      invalidateCache(`appointment:${appointmentId}`)
-    ]);
+    // await Promise.all([
+    //   invalidateCache(`user:${appointment.clientId}:appointments:client`),
+    //   invalidateCache(`user:${appointment.proId}:appointments:pro`),
+    //   invalidateCache(`appointment:${appointmentId}`)
+    // ]);
 
     return {
       appointmentId,
@@ -322,6 +322,6 @@ export const evaluerAppointmentService = async (
 
 // Helper function to invalidate user appointments cache
 const invalidateUserAppointmentsCache = async (userId: string): Promise<void> => {
-  await invalidateCache(`user:${userId}:appointments:pro`);
-  await invalidateCache(`user:${userId}:appointments:client`);
+  // await invalidateCache(`user:${userId}:appointments:pro`);
+  // await invalidateCache(`user:${userId}:appointments:client`);
 };
