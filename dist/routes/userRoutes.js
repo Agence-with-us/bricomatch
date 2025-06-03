@@ -9,4 +9,5 @@ const types_1 = require("../types");
 const userController_1 = require("../controllers/userController");
 const router = express_1.default.Router();
 router.post('/create-stripe-connect', auth_1.authenticate, (0, auth_1.authorizeRoles)(types_1.UserRole.PRO), userController_1.createStripeConnectAccount);
+router.delete('/delete-my-account', auth_1.authenticate, userController_1.deleteMyAccount);
 exports.default = router;

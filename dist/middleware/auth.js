@@ -22,7 +22,6 @@ const authenticate = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             });
         }
         const token = authHeader.split('Bearer ')[1];
-        console.log(token);
         if (!token) {
             return res.status(401).json({
                 success: false,
@@ -30,7 +29,6 @@ const authenticate = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             });
         }
         const decodedToken = yield (0, firebase_1.getAuth)().verifyIdToken(token);
-        console.log(decodedToken);
         const user = yield (0, userService_1.getUserById)(decodedToken.uid);
         if (!user) {
             return res.status(401).json({
@@ -38,6 +36,7 @@ const authenticate = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                 error: 'Unauthorized: User not found'
             });
         }
+        console.log(decodedToken);
         req.user = {
             id: user.id,
             email: user.email,

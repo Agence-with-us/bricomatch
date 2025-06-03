@@ -18,18 +18,18 @@ export const getUserById = async (id: string): Promise<UserLocal | null> => {
     // }
     
     // // If not in cache, fetch from Firestore
-    // const doc = await usersCollection.doc(id).get();
+    const doc = await usersCollection.doc(id).get();
     
-    // if (!doc.exists) {
-    //   return null;
-    // }
+    if (!doc.exists) {
+      return null;
+    }
     
-    // const user = { id: doc.id, ...doc.data() } as UserLocal;
+    const user = { id: doc.id, ...doc.data() } as UserLocal;
     
     // // Store in cache
     // await setCachedData(cacheKey, user);
     
-    // return user;
+    return user;
   } catch (error) {
     console.error(`Error fetching user with ID ${id}:`, error);
     throw error;

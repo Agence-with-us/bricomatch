@@ -27,7 +27,6 @@ export const authenticate = async (
     }
 
     const token = authHeader.split('Bearer ')[1];
-    console.log(token)
     
     if (!token) {
       return res.status(401).json({ 
@@ -37,7 +36,6 @@ export const authenticate = async (
     }
 
     const decodedToken = await getAuth().verifyIdToken(token);
-    console.log(decodedToken)
 
     const user = await getUserById(decodedToken.uid);
     
@@ -47,6 +45,8 @@ export const authenticate = async (
         error: 'Unauthorized: User not found' 
       });
     }
+        console.log(decodedToken)
+
 
     req.user = {
       id: user.id,

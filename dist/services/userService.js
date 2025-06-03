@@ -58,14 +58,14 @@ const getUserById = (id) => __awaiter(void 0, void 0, void 0, function* () {
         //   return cachedUser;
         // }
         // // If not in cache, fetch from Firestore
-        // const doc = await usersCollection.doc(id).get();
-        // if (!doc.exists) {
-        //   return null;
-        // }
-        // const user = { id: doc.id, ...doc.data() } as UserLocal;
+        const doc = yield firebase_1.usersCollection.doc(id).get();
+        if (!doc.exists) {
+            return null;
+        }
+        const user = Object.assign({ id: doc.id }, doc.data());
         // // Store in cache
         // await setCachedData(cacheKey, user);
-        // return user;
+        return user;
     }
     catch (error) {
         console.error(`Error fetching user with ID ${id}:`, error);
