@@ -1,0 +1,99 @@
+{
+  "project_info": {
+    "project_number": "245388564054",
+    "firebase_url": "https://sos-mario-583d7-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "sos-mario-583d7",
+    "storage_bucket": "sos-mario-583d7.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:245388564054:android:0462a618ff04a7abea8df7",
+        "android_client_info": {
+          "package_name": "com.withus.bricomatch"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "245388564054-6en2jc6gtm0h98o9ns3buprm9c4u0ljl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.withus.bricomatch",
+            "certificate_hash": "0ffec4786e0bb970442830d6c042ed7a6d015893"
+          }
+        },
+        {
+          "client_id": "245388564054-ra477qp1i0p200vnb7fqul8ldhp6ijfg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCbKQ6UeTvIAPvQI68FRwi8OvAFsW4ryd8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "245388564054-ra477qp1i0p200vnb7fqul8ldhp6ijfg.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "245388564054-c4ocflak6oaijdhrpp3gsb29trlqn5cc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "sos.mario"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:245388564054:android:85dbb96923eea3b3ea8df7",
+        "android_client_info": {
+          "package_name": "sos.mario"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "245388564054-4fr2f37obf2qgkl5h46t2ir5f2un2moq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "sos.mario",
+            "certificate_hash": "0ffec4786e0bb970442830d6c042ed7a6d015893"
+          }
+        },
+        {
+          "client_id": "245388564054-ra477qp1i0p200vnb7fqul8ldhp6ijfg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCbKQ6UeTvIAPvQI68FRwi8OvAFsW4ryd8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "245388564054-ra477qp1i0p200vnb7fqul8ldhp6ijfg.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "245388564054-c4ocflak6oaijdhrpp3gsb29trlqn5cc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "sos.mario"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
