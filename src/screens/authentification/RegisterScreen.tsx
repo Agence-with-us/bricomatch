@@ -43,6 +43,7 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
   const [nom, setNom] = useState('');
   const [prenom, setPrenom] = useState('');
   const [serviceTypeId, setServiceTypeId] = useState('');
+  console.log(serviceTypeId)
   const [photo, setPhoto] = useState<string | null>(null);
   const [showServicePicker, setShowServicePicker] = useState(false);
 
@@ -322,7 +323,7 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
                             key={service.id}
                             className={`p-3 ${index < services.length - 1 ? 'border-b border-gray-100' : ''}`}
                             onPress={() => {
-                              setServiceTypeId(service.name);
+                              setServiceTypeId(service.id);
                               setShowServicePicker(false);
                             }}
                           >
