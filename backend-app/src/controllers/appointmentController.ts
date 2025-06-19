@@ -55,6 +55,8 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
     // Convertit cette date en UTC, sans changement d'heure apparente
     const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
     console.log("utcDate", utcDate);
+    const fullDate = new Date(`${dateTime.split('T')[0]}T${timeSlot}:00`);
+    console.log("fullDate", fullDate);
 
 
 
