@@ -135,6 +135,7 @@ export const cancelAppointmentAdvancedService = async (
 ): Promise<Appointment | null> => {
   try {
     const appointment = await getAppointmentById(appointmentId);
+    console.log("appointment", appointment);
     validateUserAccess(appointment, userId, initiatedBy);
 
     // Switch sur le statut pour déterminer l'action

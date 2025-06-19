@@ -43,12 +43,7 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
       throw new ClientError("Professionnel non trouvé", 404);
     }
 
-    // On crée la date complète en combinant la date et le timeSlot
-    console.log("dateTime", dateTime);
-    console.log("timeSlot", timeSlot);
-
     const utcDate = parisToUTC(timeSlot, dateTime);
-    console.log("utcDate", utcDate);
   
     // Calculer le montant de base et le montant total avec TVA
     const baseAmount = duration * 100;             // Montant hors TVA
