@@ -15,6 +15,7 @@ import { getUserById } from '../services/userService';
 import { generateInvoice } from '../services/invoiceService';
 import { ClientError } from '../helpers/ClientError';
 import { createOrActivateChat } from '../services/chatService';
+import { parisToUTC } from '../utils/date';
 
 // Create a new appointment and initialize payment
 export const createAppointment = async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -46,7 +47,8 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
     console.log("dateTime", dateTime);
     console.log("timeSlot", timeSlot);
 
-
+    const utcDate = parisToUTC(timeSlot, dateTime);
+    console.log("utcDate", utcDate);
     // Créer la date normalement
     const tempDate = new Date(`${dateTime.split('T')[0]}T${timeSlot}:00`);
     console.log("Date locale créée:", tempDate);
@@ -83,7 +85,7 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
     const appointmentData: Partial<Appointment> = {
       proId,
       clientId: req.user.id,
-      dateTime: admin.firestore.Timestamp.fromDate(fullDate),
+      dateTime: admin.firestore.Timestamp.fromDate(utcDate),
       duration,
       timeSlot, // On conserve éventuellement le timeSlot si besoin
       status: AppointmentStatus.PAYMENT_INITIATED,
