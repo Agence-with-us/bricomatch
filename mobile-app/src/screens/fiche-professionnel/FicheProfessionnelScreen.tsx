@@ -21,8 +21,6 @@ export const FicheProfessionnelScreen: React.FC = () => {
     const [openBookModalAppointment, setOpenBookModalAppointment] = useState<boolean>(false)
     const handleBookModalAppointment = () => setOpenBookModalAppointment(true)
 
-    // TODO: to remove when the backend is ready
-    const tempRating = Number.parseFloat(((Math.random() * (5 - 1)) + 1).toFixed(1))
 
     return (
         <View className="flex-1 pt-9 bg-background" key={`${selectedProffesionnel.id}`}>
@@ -74,9 +72,7 @@ export const FicheProfessionnelScreen: React.FC = () => {
                 </View>
                 <View className="mt-10 flex-1">
                     <Text className="text-muted-disabled text-[15px] font-bold mb-2">DISPONIBILITÉS</Text>
-                    {/* <View className="p-4 bg-accent rounded-[20px] flex-1" style={useStyles.cardShadow}>
-                        <CalendarScreen />
-                    </View> */}
+                  
                 </View>
                 <AvailabilityCalendar professionalId={selectedProffesionnel.id} />
             </ScrollView>

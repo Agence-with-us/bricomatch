@@ -38,11 +38,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
     const { otherProAvailability, isLoading, error } = useSelector((state: RootState) => state.availability);
     const { user } = useSelector((state: RootState) => state.auth);
 
-    console.log("+++++++++++++++++++ Booking Modal ++++++++++++")
-    console.log(availableTimeSlots)
-    console.log(selectedDate)
-    console.log("------------------- Booking Modal ------------")
-
+ 
     // Animation du modal
     const modalY = useRef(new Animated.Value(height)).current;
     const modalHeight = height * 0.9; // 90% de la hauteur de l'écran

@@ -1,8 +1,8 @@
 // axiosInstance.ts
 import axios from 'axios';
-import { API_URL } from '../utils/constants';
 import { auth } from './firebase.config';
 import { showApiErrorToast, showToast } from '../utils/toastNotification';
+import Constants from 'expo-constants';
 
 /**
  * Fonction utilitaire pour récupérer le token d'authentification depuis Firebase.
@@ -11,8 +11,9 @@ async function getAuthToken(): Promise<string | null> {
   return auth.currentUser ? await auth.currentUser.getIdToken() : null;
 }
 
+
 const axiosInstance = axios.create({
-  baseURL: API_URL,
+  baseURL: Constants.expoConfig?.extra?.apiUrl,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -41,6 +42,8 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error) => {
+    console.log(error.request);
+
     // En cas d'erreur, si l'API retourne des détails, utiliser showApiErrorToast,
     // sinon afficher un message d'erreur générique.
     if (error.response && error.response.data) {

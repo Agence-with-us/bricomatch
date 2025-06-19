@@ -51,6 +51,7 @@ export default {
       favicon: './assets/favicon.png',
     },
     extra: {
+      apiUrl: process.env.NODE_ENV === 'production' ? process.env.API_URL_PROD : process.env.API_URL_DEV,
       firebaseApiKey: process.env.FIREBASE_API_KEY,
       firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
       firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
@@ -62,7 +63,7 @@ export default {
       googleSignInIOSClientId: process.env.GOOGLE_SIGN_IN_IOS_CLIENT_ID,
       stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
       eas: {
-        projectId: "60ebc65c-10ec-44b3-99d7-70f19d8e14aa"
+        projectId: process.env.EAS_PROJECT_ID
       }
     },
     plugins: [

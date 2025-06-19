@@ -102,12 +102,8 @@ const handleProCancellation = async (
 // Utils functions
 const getHoursUntilAppointment = (appointmentDateTime: any): number => {
   const appointmentDate = appointmentDateTime.toDate();
-  console.log("appointmentDate", appointmentDate);
   const now = new Date();
-  console.log("now", now);
   const diffMs = appointmentDate.getTime() - now.getTime();
-  console.log("diffMs", diffMs);
-  console.log("diffMs / (1000 * 60 * 60)", diffMs / (1000 * 60 * 60));
   return diffMs / (1000 * 60 * 60);
 };
 

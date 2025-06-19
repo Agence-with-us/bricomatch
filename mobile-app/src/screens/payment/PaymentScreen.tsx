@@ -21,7 +21,6 @@ import axiosInstance from '../../config/axiosInstance';
 import { goBack, reset } from '../../services/navigationService';
 import { StripeError } from '../../types/StripeError';
 import { getStripeErrorMessage } from '../../utils/stripeErrorHandler';
-import CreditCardInput from '../../components/elements/payment/CreditCardInput';
 
 export default function PaymentScreen() {
     const route = useRoute<RouteProp<RootStackParamList, 'Payment'>>();
@@ -63,7 +62,8 @@ export default function PaymentScreen() {
             setClientSecret(response.data.data.clientSecret);
             setCreatedAppointment(response.data.data.appointment);
 
-        } catch (error) {
+        } catch (error : any) {
+            console.error(error);
             goBack();
         } finally {
             setIsLoading(false);

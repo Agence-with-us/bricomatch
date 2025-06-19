@@ -31,11 +31,12 @@ export interface AppointmentWithOtherUserInfo {
 }
 
 export enum AppointmentStatus {
-  PAYMENT_INITIATED = 'PAYMENT_INITIATED',     // Paiement créé, en attente de confirmation carte
-  PAYMENT_AUTHORIZED = 'PAYMENT_AUTHORIZED',   // Paiement autorisé, en attente validation PRO
-  CONFIRMED = 'CONFIRMED',                     // RDV confirmé par le PRO, paiement capturé
-  COMPLETED = 'COMPLETED',                     // RDV terminé (visio > 10min)
-  CANCELLED_BY_CLIENT = 'CANCELLED_BY_CLIENT', // Annulé par le particulier
-  CANCELLED_BY_PRO = 'CANCELLED_BY_PRO',       // Annulé par le PRO
-  CANCELLED_BY_PRO_PENDING = 'CANCELLED_BY_PRO_PENDING',       // envoyé au admin pour confirmé
+    PENDING = 'PENDING',                       //
+    PAYMENT_INITIATED = 'PAYMENT_INITIATED',     // Paiement créé, en attente de confirmation carte
+    PAYMENT_AUTHORIZED = 'PAYMENT_AUTHORIZED',   // Paiement autorisé, en attente validation PRO
+    CONFIRMED = 'CONFIRMED',                     // RDV confirmé par le PRO, paiement capturé
+    COMPLETED = 'COMPLETED',                     // RDV terminé (visio > 10min)
+    CANCELLED_BY_CLIENT = 'CANCELLED_BY_CLIENT', // Annulé par le particulier
+    CANCELLED_BY_PRO = 'CANCELLED_BY_PRO',       // Annulé par le PRO
+    CANCELLED_BY_PRO_PENDING = 'CANCELLED_BY_PRO_PENDING',       // envoyé au admin pour confirmé
 }

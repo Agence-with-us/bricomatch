@@ -57,7 +57,6 @@ import { navigate } from '../../services/navigationService';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { UserRole } from '../users/types';
 import axiosInstance from '../../config/axiosInstance';
-import { API_URL } from '../../utils/constants';
 
 // Fonction pour convertir une image locale en Blob
 const createBlobFromUri = async (uri: string): Promise<Blob> => {
@@ -236,7 +235,7 @@ function* registerSaga(action: PayloadAction<RegisterRequestPayload>): SagaItera
 
       // **🚀 Appel à l'API Stripe si le rôle est PRO**
       if (role === 'PRO') {
-        yield call(axiosInstance.post, `${API_URL}/users/create-stripe-connect`);
+        yield call(axiosInstance.post, `/users/create-stripe-connect`);
         console.log(`🔄 Compte Stripe Connect demandé pour le PRO ${userId}`);
       }
       // navigate("ValidationScreen", {
@@ -328,7 +327,7 @@ function* loginWithGoogleSaga(action: PayloadAction<any>): SagaIterator {
 
       // **🚀 Appel à l'API Stripe si le rôle est PRO**
       if (role === 'PRO') {
-        yield call(axiosInstance.post, `${API_URL}/users/create-stripe-connect`);
+        yield call(axiosInstance.post, `/users/create-stripe-connect`);
         console.log(`🔄 Compte Stripe Connect demandé pour le PRO ${userId}`);
       }
       // Redirection basée sur le rôle stocké dans Firestore
