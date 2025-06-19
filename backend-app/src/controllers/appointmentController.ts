@@ -45,17 +45,19 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
     // On crée la date complète en combinant la date et le timeSlot
     console.log("dateTime", dateTime);
     console.log("timeSlot", timeSlot);
-    const [year, month, day] = dateTime.split('-').map(Number);         // "2025-06-25"
-    const [hours, minutes] = timeSlot.split(':').map(Number);           // "15:30"
 
-    // Crée une date interprétée dans le fuseau local
-    const localDate = new Date(year, month - 1, day, hours, minutes);
-    console.log("localDate", localDate);
+    const datePart = dateTime.split('T')[0]; // 2025-06-25
+    const [hours, minutes] = timeSlot.split(':'); // [10, 30]
 
-    // Convertit cette date en UTC, sans changement d'heure apparente
-    const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
-    console.log("utcDate", utcDate);
-    const fullDate = new Date(`${dateTime.split('T')[0]}T${timeSlot}:00`);
+    // Créer directement en UTC
+    const fullDate = new Date(Date.UTC(
+      parseInt(datePart.split('-')[0]), // année
+      parseInt(datePart.split('-')[1]) - 1, // mois (0-indexé)
+      parseInt(datePart.split('-')[2]), // jour
+      parseInt(hours), // heures
+      parseInt(minutes) // minutes
+    ));
+
     console.log("fullDate", fullDate);
 
 
