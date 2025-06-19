@@ -49,19 +49,7 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
 
     const utcDate = parisToUTC(timeSlot, dateTime);
     console.log("utcDate", utcDate);
-    // Créer la date normalement
-    const tempDate = new Date(`${dateTime.split('T')[0]}T${timeSlot}:00`);
-    console.log("Date locale créée:", tempDate);
-
-    // Soustraire le décalage pour obtenir l'heure locale en tant qu'UTC
-    const offsetInMs = tempDate.getTimezoneOffset() * 60000;
-    const fullDate = new Date(tempDate.getTime() - offsetInMs);
-
-    console.log("fullDate corrigée:", fullDate);
-    console.log("ISO:", fullDate.toISOString());
-
-
-
+  
     // Calculer le montant de base et le montant total avec TVA
     const baseAmount = duration * 100;             // Montant hors TVA
     const vatAmount = Math.round(baseAmount * 0.2);  // TVA à 20%
