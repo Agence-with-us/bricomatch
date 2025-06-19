@@ -46,19 +46,17 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
     console.log("dateTime", dateTime);
     console.log("timeSlot", timeSlot);
 
-    const datePart = dateTime.split('T')[0]; // 2025-06-25
-    const [hours, minutes] = timeSlot.split(':'); // [10, 30]
 
-    // Créer directement en UTC
-    const fullDate = new Date(Date.UTC(
-      parseInt(datePart.split('-')[0]), // année
-      parseInt(datePart.split('-')[1]) - 1, // mois (0-indexé)
-      parseInt(datePart.split('-')[2]), // jour
-      parseInt(hours), // heures
-      parseInt(minutes) // minutes
-    ));
+    // Créer la date normalement
+    const tempDate = new Date(`${dateTime.split('T')[0]}T${timeSlot}:00`);
+    console.log("Date locale créée:", tempDate);
 
-    console.log("fullDate", fullDate);
+    // Soustraire le décalage pour obtenir l'heure locale en tant qu'UTC
+    const offsetInMs = tempDate.getTimezoneOffset() * 60000;
+    const fullDate = new Date(tempDate.getTime() - offsetInMs);
+
+    console.log("fullDate corrigée:", fullDate);
+    console.log("ISO:", fullDate.toISOString());
 
 
 
