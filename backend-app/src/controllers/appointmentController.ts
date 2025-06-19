@@ -83,7 +83,7 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
     const appointmentData: Partial<Appointment> = {
       proId,
       clientId: req.user.id,
-      dateTime: admin.firestore.Timestamp.fromDate(utcDate),
+      dateTime: admin.firestore.Timestamp.fromDate(fullDate),
       duration,
       timeSlot, // On conserve éventuellement le timeSlot si besoin
       status: AppointmentStatus.PAYMENT_INITIATED,
