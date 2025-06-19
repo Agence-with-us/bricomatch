@@ -43,6 +43,8 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
     }
 
     // On crée la date complète en combinant la date et le timeSlot
+    console.log("dateTime", dateTime);
+    console.log("timeSlot", timeSlot);
     const [year, month, day] = dateTime.split('-').map(Number);         // "2025-06-25"
     const [hours, minutes] = timeSlot.split(':').map(Number);           // "15:30"
 
