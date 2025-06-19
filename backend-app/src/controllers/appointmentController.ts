@@ -43,11 +43,18 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
     }
 
     // On crée la date complète en combinant la date et le timeSlot
-    const fullDate = new Date(dateTime); // Par exemple, "2025-06-07"
-    console.log("fullDate", fullDate);
-    const [hours, minutes] = timeSlot.split(':').map(Number); // Par exemple, "09:00"
-    fullDate.setHours(hours, minutes, 0, 0);
-    console.log("fullDate", fullDate);
+    const [year, month, day] = dateTime.split('-').map(Number);         // "2025-06-25"
+    const [hours, minutes] = timeSlot.split(':').map(Number);           // "15:30"
+
+    // Crée une date interprétée dans le fuseau local
+    const localDate = new Date(year, month - 1, day, hours, minutes);
+    console.log("localDate", localDate);
+
+    // Convertit cette date en UTC, sans changement d'heure apparente
+    const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
+    console.log("utcDate", utcDate);
+
+
 
     // Calculer le montant de base et le montant total avec TVA
     const baseAmount = duration * 100;             // Montant hors TVA
@@ -72,7 +79,7 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
     const appointmentData: Partial<Appointment> = {
       proId,
       clientId: req.user.id,
-      dateTime: admin.firestore.Timestamp.fromDate(fullDate),
+      dateTime: admin.firestore.Timestamp.fromDate(utcDate),
       duration,
       timeSlot, // On conserve éventuellement le timeSlot si besoin
       status: AppointmentStatus.PAYMENT_INITIATED,
