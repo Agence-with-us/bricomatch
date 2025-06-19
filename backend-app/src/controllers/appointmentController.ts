@@ -44,8 +44,10 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
 
     // On crée la date complète en combinant la date et le timeSlot
     const fullDate = new Date(dateTime); // Par exemple, "2025-06-07"
+    console.log("fullDate", fullDate);
     const [hours, minutes] = timeSlot.split(':').map(Number); // Par exemple, "09:00"
     fullDate.setHours(hours, minutes, 0, 0);
+    console.log("fullDate", fullDate);
 
     // Calculer le montant de base et le montant total avec TVA
     const baseAmount = duration * 100;             // Montant hors TVA
