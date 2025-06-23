@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import GoBack from '../common/GoBack'; // Ajustez le chemin selon votre structure
 import { navigate, navigationRef } from '../../services/navigationService';
 
