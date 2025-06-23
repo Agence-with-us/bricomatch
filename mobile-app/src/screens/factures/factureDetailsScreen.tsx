@@ -39,7 +39,6 @@ const formatFirebaseDate = (timestamp: any, format?: Intl.DateTimeFormatOptions)
 
 // Fonction pour télécharger la facture
 const downloadFacture = async (fileUrl: string, invoiceNumber: string) => {
-    console.log("Téléchargement de la facture:", invoiceNumber);
     try {
         if (fileUrl) {
             // Ouvrir le PDF dans le navigateur ou une app externe
@@ -57,7 +56,6 @@ export default function FactureDetailsScreen() {
     const route = useRoute<FactureDetailsScreenProps>();
     const { facture } = route.params;
     
-    console.log('Données facture:', facture);
     
     // Récupération des données avec gestion des cas null
     const invoice = facture.invoice;

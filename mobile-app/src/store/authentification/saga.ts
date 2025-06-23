@@ -51,7 +51,7 @@ import {
 } from './types';
 import { auth, firestore, storage } from '../../config/firebase.config';
 import { SagaIterator } from 'redux-saga';
-import { navigate } from '../../services/navigationService';
+import { navigate, reset } from '../../services/navigationService';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { UserRole } from '../users/types';
 import axiosInstance from '../../config/axiosInstance';
@@ -179,7 +179,6 @@ function* loginSaga(action: PayloadAction<LoginRequestPayload>): SagaIterator {
         errorMessage = 'Trop de tentatives, veuillez réessayer plus tard.';
         break;
     }
-    console.log(error)
     yield put(loginFailure(errorMessage));
   }
 }
@@ -216,7 +215,6 @@ function* registerSaga(action: PayloadAction<RegisterRequestPayload>): SagaItera
       photoUrl: finalPhotoUrl || '',
       serviceTypeId: role === 'PRO' ? serviceTypeId : ''
     };
-    console.log("Données utilisateur à sauvegarder:", userData);
 
     try {
       const userDocRef = doc(firestore, 'users', userId);
@@ -235,16 +233,8 @@ function* registerSaga(action: PayloadAction<RegisterRequestPayload>): SagaItera
       // **🚀 Appel à l'API Stripe si le rôle est PRO**
       if (role === 'PRO') {
         yield call(axiosInstance.post, `/users/create-stripe-connect`);
-        console.log(`🔄 Compte Stripe Connect demandé pour le PRO ${userId}`);
       }
-      // navigate("ValidationScreen", {
-      //   info: {
-      //     title: "Votre compte est crée",
-      //     subtitle: " Lorem ipsum dolor sit amet, consetetur sadicing elitr, sed diam nonumy eirmod tempor ut.",
-      //     actionText: "JE ME CONNECTE",
-      //     to: role === 'PRO' ? 'Appointments' : 'Home'
-      //   }
-      // })
+     
 
 
 
@@ -289,6 +279,7 @@ function* registerSaga(action: PayloadAction<RegisterRequestPayload>): SagaItera
 function* loginWithGoogleSaga(action: PayloadAction<any>): SagaIterator {
   try {
 
+
     const userData = action.payload.data;
     const role = action.payload.role;
     const { idToken } = userData;
@@ -313,7 +304,6 @@ function* loginWithGoogleSaga(action: PayloadAction<any>): SagaIterator {
       // ✅ L'utilisateur existe dans Firestore - récupération des données existantes
       userDataToStore = userDoc.data() as User;
 
-      console.log("Utilisateur existant, connexion directe");
 
       // Enregistrement du login dans Redux et stockage local
       yield put(loginSuccess({
@@ -412,11 +402,9 @@ function* loginWithGoogleSaga(action: PayloadAction<any>): SagaIterator {
         errorMessage = "Erreur interne. Veuillez réessayer plus tard.";
         break;
       default:
-        errorMessage = error.message || "Une erreur est survenue lors de la connexion.";
         break;
     }
 
-    console.error("Erreur Google Sign-In:", error);
     yield put(loginFailure(errorMessage));
   }
 }
@@ -453,7 +441,6 @@ function* loginWithAppleSaga(action: PayloadAction<any>): SagaIterator {
       // ✅ L'utilisateur existe dans Firestore - récupération des données existantes
       userDataToStore = userDoc.data() as User;
 
-      console.log("Utilisateur existant, connexion directe");
 
       // Enregistrement du login dans Redux et stockage local
       yield put(loginSuccess({
@@ -560,8 +547,7 @@ function* loginWithAppleSaga(action: PayloadAction<any>): SagaIterator {
 // Saga pour compléter le profil après connexion sociale
 function* completeProfileSaga(action: PayloadAction<CompleteProfileRequestPayload>): SagaIterator {
   try {
-    console.log("action.payload")
-    console.log(action.payload)
+   
     const userData = action.payload;
     const userId = userData.id;
 
@@ -684,6 +670,9 @@ function* logoutSaga() {
 
     // ✅ Succès
     yield put(logoutSuccess());
+
+    // Réinitialiser la navigation pour empêcher le retour en arrière
+    yield call(reset, 'Home');
   } catch (error: any) {
     console.error('Erreur déconnexion:', error);
     yield put(logoutFailure('Erreur lors de la déconnexion: ' + error.message));

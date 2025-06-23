@@ -66,7 +66,6 @@ const AppleSignInComponent: React.FC<AppleSignInComponentProps> = ({ onSignInSuc
 
       // Gérer le cas où l'utilisateur annule l'authentification
       if (error.code === 'ERR_CANCELED') {
-        console.log("L'utilisateur a annulé l'authentification Apple");
       } else if (onSignInFailure) {
         onSignInFailure(error);
       }

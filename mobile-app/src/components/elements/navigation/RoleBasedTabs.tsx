@@ -6,14 +6,14 @@ import { RootState } from '../../../store/store';
 import { navigate, getCurrentRoute, addNavigationListener } from '../../../services/navigationService';
 
 // Screens where we want to hide the tab bar
-const HIDDEN_TAB_SCREENS = ['ChatScreen','FicheProfessionnel', 'Payment', 'ValidationScreen', "FactureDetailsScreen", "FacturesScreen", "VideoCall"];
+const HIDDEN_TAB_SCREENS = ['ChatScreen', 'FicheProfessionnel', 'Payment', 'ValidationScreen', "FactureDetailsScreen", "FacturesScreen", "VideoCall", 'Login', 'Register', 'CompleteProfile'];
 
 // Define role-specific screens
 const PARTICULIER_ONLY_SCREENS = ['HomeSearch', 'FicheProfessionnel', 'Services'];
 const PRO_ONLY_SCREENS = ['ConnectedUserAvailability'];
 
 const RoleBasedTabs = () => {
-  const user = useSelector((state: RootState) => state.auth.user);
+  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const [activeTab, setActiveTab] = useState('');
   const [isVisible, setIsVisible] = useState(true);
   const [previousRole, setPreviousRole] = useState<string | null>(null);
@@ -25,26 +25,28 @@ const RoleBasedTabs = () => {
   // Effect for role change detection
   useEffect(() => {
     if (previousRole !== currentRole) {
-      console.log(previousRole)
       // Role has changed or initial login
       setPreviousRole(currentRole);
-      
-      // Navigate to appropriate default screen based on role
-      if (isPro) {
-        navigate('Appointments');
-        setActiveTab('Appointments');
-      } else if (isParticulier) {
-        navigate('Home');
-        setActiveTab('Home');
+
+      // Navigate to appropriate default screen based on role (only if authenticated)
+      if (isAuthenticated && user && activeTab !== "Home") {
+        if (isPro) {
+          navigate('Home');
+          setActiveTab('Home');
+        } else {
+          navigate('Appointments');
+          setActiveTab('Appointments');
+
+        }
       }
     }
-  }, [currentRole, isPro, isParticulier, previousRole]);
+  }, [currentRole, isPro, isParticulier, previousRole, isAuthenticated, user]);
 
   // Update active tab based on current route and handle visibility
   useEffect(() => {
     // Initial check
     checkCurrentRoute();
-    
+
     // Add listener for future navigation changes
     const unsubscribe = addNavigationListener('state', () => {
       checkCurrentRoute();
@@ -52,50 +54,58 @@ const RoleBasedTabs = () => {
 
     // Cleanup listener on unmount
     return () => unsubscribe();
-  }, [isParticulier, isPro]);
+  }, [isParticulier, isPro, isAuthenticated, user]);
 
   const checkCurrentRoute = () => {
     const currentRoute = getCurrentRoute();
     if (currentRoute?.name) {
       setActiveTab(currentRoute.name);
-      
+
       // Hide tab bar on specific screens
       setIsVisible(!HIDDEN_TAB_SCREENS.includes(currentRoute.name));
 
-      // Redirect if user tries to access a screen not allowed for their role
-      if (isParticulier && PRO_ONLY_SCREENS.includes(currentRoute.name)) {
-        navigate('Home');
-      } else if (isPro && PARTICULIER_ONLY_SCREENS.includes(currentRoute.name)) {
-        navigate('Appointments');
+      // Only perform role-based redirects if user is authenticated
+      if (isAuthenticated && user) {
+        // Redirect if user tries to access a screen not allowed for their role
+        if (isParticulier && PRO_ONLY_SCREENS.includes(currentRoute.name)) {
+          navigate('Home');
+        } else if (isPro && PARTICULIER_ONLY_SCREENS.includes(currentRoute.name)) {
+          navigate('Appointments');
+        }
       }
     }
   };
 
   const handleTabPress = (screenName: string) => {
+    // Check if user is authenticated before navigating to protected screens
+    if (!isAuthenticated || !user) {
+      navigate('Login');
+      return;
+    }
+
     setActiveTab(screenName);
     //@ts-ignore
     navigate(screenName);
   };
 
-  // Don't render anything if tab bar should be hidden
+  // Don't render anything if tab bar should be hidden or user is not authenticated
   if (!isVisible) {
     return null;
   }
 
   // Select initial screen if no active tab
   if (!activeTab) {
-    if (isPro) {
-      setActiveTab('Appointments');
-    } else if (isParticulier) {
+    if (!isPro) {
       setActiveTab('Home');
+    } else {
+      setActiveTab('Appointments');
     }
-    return null; // Return null once to avoid flicker during initialization
   }
-  
+
   return (
     <View style={styles.container}>
       {/* PARTICULIER specific tab */}
-      {isParticulier && (
+      {!isPro && (
         <TabButton
           icon="search-outline"
           label="Explorer"
@@ -103,7 +113,7 @@ const RoleBasedTabs = () => {
           isActive={activeTab === 'Home'}
         />
       )}
-      
+
       {/* Common tabs for all users */}
       <TabButton
         icon="chatbubble-outline"

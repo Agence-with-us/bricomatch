@@ -9,6 +9,9 @@ import { UserLocal } from '../../store/users/types';
 import { ProfileStatusAvatar } from '../../components/elements/fiche-professionnel/ProfileStatusAvatar';
 import AvailabilityCalendar from '../../components/elements/appointments/AvailabilityCalendar';
 import AppointmentBookingModal from '../../components/elements/appointments/AppointmentBookingModal';
+import { navigate } from '../../services/navigationService';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store/store';
 
 
 export const FicheProfessionnelScreen: React.FC = () => {
@@ -17,9 +20,16 @@ export const FicheProfessionnelScreen: React.FC = () => {
 
     if (!route?.params?.professionnel) return null;
     const [selectedProffesionnel, setSelectedProfessionnel] = useState<UserLocal>(route.params.professionnel)
-
     const [openBookModalAppointment, setOpenBookModalAppointment] = useState<boolean>(false)
-    const handleBookModalAppointment = () => setOpenBookModalAppointment(true)
+    const { user } = useSelector((state: RootState) => state.auth);
+    
+    const handleBookModalAppointment = () => {
+        if (!user) {
+            navigate('Login');
+        } else {
+            setOpenBookModalAppointment(true);
+        }
+    }
 
 
     return (
@@ -72,7 +82,7 @@ export const FicheProfessionnelScreen: React.FC = () => {
                 </View>
                 <View className="mt-10 flex-1">
                     <Text className="text-muted-disabled text-[15px] font-bold mb-2">DISPONIBILITÉS</Text>
-                  
+
                 </View>
                 <AvailabilityCalendar professionalId={selectedProffesionnel.id} />
             </ScrollView>

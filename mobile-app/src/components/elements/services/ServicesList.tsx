@@ -8,9 +8,7 @@ import LogoSpinner from '../../common/LogoSpinner';
 const ServicesList = () => {
     const dispatch = useDispatch();
     const { services, loading, error } = useSelector((state: RootState) => state.services);
-    console.log("---------------------------------------------------")
-
-    console.log(services)
+   
 
     useEffect(() => {
         if (services.length == 0)

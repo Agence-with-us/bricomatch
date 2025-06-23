@@ -16,8 +16,7 @@ const initialState: AuthState = {
   error: null,
   isAuthenticated: false,
   tempUserData: null,
-  lastLoginTime: null
-
+  lastLoginTime: null,
 };
 
 // Création du slice
@@ -36,7 +35,6 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.error = null;
       state.lastLoginTime = Date.now(); // Stocker l'heure de connexion
-
     },
     loginFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -103,7 +101,7 @@ const authSlice = createSlice({
       state.error = null;
     },
     logoutSuccess: (state) => {
-      return initialState;
+      return { ...initialState };
     },
     logoutFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;

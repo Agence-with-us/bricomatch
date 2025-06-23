@@ -15,7 +15,6 @@ export const useNotifications = () => {
     const initializeNotifications = async () => {
       if (isAuthenticated && user?.id && !isInitialized) {
         try {
-          console.log('🔔 Initialisation des notifications pour:', user.id);
           
           const success = await NotificationService.initialize(user.id);
           
@@ -41,7 +40,6 @@ export const useNotifications = () => {
     const cleanupNotifications = async () => {
       if (!isAuthenticated && isInitialized) {
         try {
-          console.log('🗑️ Nettoyage des notifications (déconnexion)');
           await NotificationService.removeCurrentToken();
           
           if (isMounted) {

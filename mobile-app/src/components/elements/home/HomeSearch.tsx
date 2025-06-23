@@ -1,19 +1,19 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { FlatList, Text, TextInput, TouchableOpacity, useWindowDimensions, View, ActivityIndicator } from "react-native";
+import React, {  useState } from "react";
+import {  Text, TextInput, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import { useDispatch, useSelector } from "react-redux";
+import { RouteProp, useRoute } from "@react-navigation/native";
+import {  useSelector } from "react-redux";
 import { RootStackParamList } from "../../../types/RootStackParamList";
 import { RootState } from "../../../store/store";
 import { Service } from "../../../store/services/types";
-import { navigate } from "../../../services/navigationService";
-import { fetchProUsersByServiceRequest } from "../../../store/users/reducer";
+
 import ProUsersList from "../users/ProUsersList";
 
 
 const HomeSearch: React.FC = () => {
     const route = useRoute<RouteProp<RootStackParamList, 'HomeSearch'>>();
     const serviceId = route?.params?.serviceId || '';
+
 
 
     // Liste des services
@@ -30,7 +30,7 @@ const HomeSearch: React.FC = () => {
 
 
     return (
-        <View className="p-5">
+        <View className={`p-5`}>
            
             <View
                 className={`flex-row items-center bg-background-muted rounded-full px-4 py-2 border-[0.5px] border-[#7E8184]/50 h-[50] ${selectedService ? "pr-1.5 py-1" : ""

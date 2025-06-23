@@ -34,7 +34,6 @@ class NotificationService {
    */
   async initialize(userId: string) {
     try {
-      console.log('🔔 Initialisation du service de notifications pour:', userId);
 
       if (!userId) {
         throw new Error('User ID requis pour initialiser les notifications');
@@ -71,7 +70,6 @@ class NotificationService {
       this.setupNotificationListeners();
 
       this.isInitialized = true;
-      console.log('✅ Service de notifications initialisé avec succès');
       return true;
 
     } catch (error) {
@@ -85,7 +83,6 @@ class NotificationService {
    */
   async requestPermission() {
     try {
-      console.log('🔔 Vérification des permissions de notifications');
 
       // Pour Android 13+ (API level 33+), demander explicitement la permission
       if (Platform.OS === 'android' && Platform.Version >= 33) {
@@ -101,13 +98,11 @@ class NotificationService {
         );
 
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          console.log('❌ Permission Android pour les notifications refusée');
           return false;
         }
       }
 
       // Demander les permissions Firebase
-      console.log('🔔 Demande de permissions Firebase');
       const authStatus = await messaging().requestPermission({
         sound: true,
         announcement: true,
@@ -118,16 +113,13 @@ class NotificationService {
         alert: true,
       });
 
-      console.log('🔔 Statut d\'autorisation Firebase:', authStatus);
 
       const enabled = authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
         authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
       if (enabled) {
-        console.log('✅ Permissions de notifications accordées');
         return true;
       } else {
-        console.log('❌ Permissions de notifications refusées');
         return false;
       }
     } catch (error) {
@@ -142,7 +134,6 @@ class NotificationService {
   async checkPermissionStatus() {
     try {
       const authStatus = await messaging().hasPermission();
-      console.log('📋 Statut des permissions actuel:', authStatus);
 
       return authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
         authStatus === messaging.AuthorizationStatus.PROVISIONAL;
@@ -164,7 +155,6 @@ class NotificationService {
       }
 
       const token = await messaging().getToken();
-      console.log('🔔 Token FCM obtenu:', token.substring(0, 20) + '...');
       this.currentToken = token;
       return token;
     } catch (error) {
@@ -214,7 +204,6 @@ class NotificationService {
         { merge: true }
       );
 
-      console.log('💾 Token ajouté au document de l utilisateur:', this.currentUserId);
       await AsyncStorage.setItem('fcm_token', token);
     } catch (error) {
       console.error('Erreur lors de la sauvegarde du token:', error);
@@ -228,13 +217,11 @@ class NotificationService {
   setupNotificationListeners() {
     // Listener pour les notifications reçues en foreground
     messaging().onMessage(async (remoteMessage) => {
-      console.log('📨 Notification reçue en foreground:', remoteMessage);
       this.handleForegroundNotification(remoteMessage);
     });
 
     // Listener pour les notifications ouvertes depuis background/quit
     messaging().onNotificationOpenedApp((remoteMessage) => {
-      console.log('📱 Notification ouverte depuis background:', remoteMessage);
       this.handleNotificationOpened(remoteMessage);
     });
 
@@ -243,14 +230,12 @@ class NotificationService {
       .getInitialNotification()
       .then((remoteMessage) => {
         if (remoteMessage) {
-          console.log('🚀 App ouverte depuis une notification:', remoteMessage);
           this.handleNotificationOpened(remoteMessage);
         }
       });
 
     // Listener pour la mise à jour du token
     messaging().onTokenRefresh(async (token) => {
-      console.log('🔄 Token FCM mis à jour:', token.substring(0, 20) + '...');
       if (this.currentUserId) {
         await this.cleanupOldTokens(token);
         await this.saveTokenToFirestore(token);
@@ -287,14 +272,12 @@ class NotificationService {
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
-        console.log('📋 Aucun document de tokens existant');
         return;
       }
 
       const userData = userDoc.data();
       const existingTokens = userData.tokens || [];
 
-      console.log('🔍 Tokens existants:', existingTokens.length);
 
       // Identifier les tokens à supprimer
       const tokensToRemove = existingTokens.filter((tokenData: any) => {
@@ -307,21 +290,18 @@ class NotificationService {
         return isSamePlatform && isSameVersion && isDifferentToken;
       });
 
-      console.log('🗑️ Tokens à supprimer:', tokensToRemove.length);
 
       // Supprimer les anciens tokens
       for (const tokenToRemove of tokensToRemove) {
         await updateDoc(userDocRef, {
           tokens: arrayRemove(tokenToRemove),
         });
-        console.log('🧹 Token supprimé:', tokenToRemove.token.substring(0, 20) + '...');
       }
 
       // Nettoyer aussi le storage local si nécessaire
       const oldToken = await AsyncStorage.getItem('fcm_token');
       if (oldToken && oldToken !== currentToken) {
         await AsyncStorage.removeItem('fcm_token');
-        console.log('🧹 Ancien token supprimé du storage local');
       }
 
     } catch (error) {
@@ -343,7 +323,6 @@ class NotificationService {
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
-        console.log('📋 Aucun document de tokens à nettoyer');
         return;
       }
 
@@ -356,19 +335,16 @@ class NotificationService {
                tokenData.version === Platform.Version;
       });
 
-      console.log('🗑️ Suppression de', tokensToRemove.length, 'token(s)');
 
       // Supprimer tous les tokens de cet appareil
       for (const tokenToRemove of tokensToRemove) {
         await updateDoc(userDocRef, {
           tokens: arrayRemove(tokenToRemove),
         });
-        console.log('🗑️ Token supprimé lors de la déconnexion:', tokenToRemove.token.substring(0, 20) + '...');
       }
 
       // Nettoyage local
       await AsyncStorage.removeItem('fcm_token');
-      console.log('🧹 Storage local nettoyé');
 
       // Reset interne
       this.currentUserId = null;

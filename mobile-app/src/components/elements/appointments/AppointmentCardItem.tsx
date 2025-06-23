@@ -152,7 +152,6 @@ const AppointmentCardItem: React.FC<AppointmentCardItemProps> = ({
     const statusInfo = getStatusInfo();
     const actions = getAvailableActions();
 
-    console.log(appointmentWithOtherUser);
 
     return (
         <View style={styles.appointmentCard}>

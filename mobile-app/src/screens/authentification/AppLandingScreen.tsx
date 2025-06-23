@@ -4,8 +4,8 @@ import { navigate } from "../../services/navigationService";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store/store";
 import { fetchServicesRequest } from "../../store/services/reducer";
+import { Icon } from "react-native-paper";
 
-const splashOrangeOffset = require("../../../assets/splash-bg-offset-orange.png");
 const authentificationImage = require("../../../assets/validation/authentification.png");
 const bricomatchLogoOrange = require("../../../assets/logo-bricomatch-orange.png");
 const bubbleImage1 = require("../../../assets/validation/bubble-1.png");
@@ -16,6 +16,7 @@ export default function AppLandingScreen() {
 
     const translateY = useRef(new Animated.Value(0)).current;
     const translateY2 = useRef(new Animated.Value(0)).current;
+    const skipAnim = useRef(new Animated.Value(0)).current;
 
     const dispatch = useDispatch();
     const { services } = useSelector((state: RootState) => state.services);
@@ -42,6 +43,16 @@ export default function AppLandingScreen() {
             delay: 100
         }).start();
     }, [translateY2]);
+
+    useEffect(() => {
+        Animated.timing(skipAnim, {
+            toValue: 1,
+            duration: 700,
+            useNativeDriver: true,
+            delay: 700,
+        }).start();
+    }, [skipAnim]);
+
     return (
         <View className="flex-1 items-center gap-y-4 bg-background">
             <Animated.View
@@ -56,7 +67,7 @@ export default function AppLandingScreen() {
                     resizeMode="cover"
                 />
                 <Text className="text-base text-muted break-words mr-2">
-                    Mon compteur saute{"\n"}quand j’allume le four
+                    Mon compteur saute{"\n"}quand j'allume le four
                 </Text>
             </Animated.View>
             <Animated.View
@@ -80,17 +91,35 @@ export default function AppLandingScreen() {
                 className="z-0 mt-0 mr-2 w-[100%] h-[55%]"
                 resizeMode="stretch"
             />
+            <Animated.View
+                style={{
+                    opacity: skipAnim,
+                    transform: [{ translateX: skipAnim.interpolate({ inputRange: [0, 1], outputRange: [-100, 0] }) }],
+                    width: '100%',
+                    alignItems: 'center',
+                }}
+            >
+                <TouchableOpacity
+                    className="  flex-row  items-center justify-center"
+                    onPress={() => {
+                        navigate('Home');
+                    }}
+                >
+                    <Text className="text-base text-center text-[#F95200] ">Passer et aller à l'accueil </Text>
+                    <Icon source="arrow-right" size={24} color="#F95200" />
+                </TouchableOpacity>
+            </Animated.View>
             <View className="px-4 w-full h-[45%]">
                 <View className="items-center gap-y-2 mb-5">
                     <Text className="text-base text-muted/90 font-normal tracking-tighter text-center px-2 -mb-1.5">Bienvenue sur BRICOMATCH</Text>
-                    <Text className="text-[30px] text-muted font-bold tracking-wider -mb-1.5">L’application de</Text>
+                    <Text className="text-[30px] text-muted font-bold tracking-wider -mb-1.5">L'application de</Text>
                     <Text className="text-[30px] text-muted font-bold tracking-wider">conseil par des pros</Text>
                 </View>
                 <TouchableOpacity
                     className="rounded-[30px] bg-[#F95200] w-full items-center justify-center h-[55]"
                     onPress={() => navigate('Register', { role: 'PARTICULIER' })}
                 >
-                    <Text className="text-[#FFF]">JE RECHERCHE DE L’AIDE</Text>
+                    <Text className="text-[#FFF]">JE RECHERCHE DE L'AIDE</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     className="rounded-[30px] bg-[#F952001A] w-full items-center justify-center h-[55] mt-4"

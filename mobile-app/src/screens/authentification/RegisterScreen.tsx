@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -43,7 +42,6 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
   const [nom, setNom] = useState('');
   const [prenom, setPrenom] = useState('');
   const [serviceTypeId, setServiceTypeId] = useState('');
-  console.log(serviceTypeId)
   const [photo, setPhoto] = useState<string | null>(null);
   const [showServicePicker, setShowServicePicker] = useState(false);
 
@@ -145,7 +143,6 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
   };
 
   const handleGoogleSignInSuccess = (userData: any) => {
-    console.log("handleGoogleSignInSuccess")
     dispatch(loginWithGoogleRequest({
       ...userData,
       role: role,
@@ -159,14 +156,12 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
     }));
   };
 
-  const handleSignInFailure = (error: any) => {
-    console.error('Échec de connexion:', error);
-  };
+ 
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-background"
+      className="flex-1 pt-10 bg-background"
     >
       {/* Image de fond */}
       <Image
@@ -362,31 +357,6 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
             </TouchableOpacity>
 
 
-
-            {/* Options de connexion alternatives */}
-            {/* <View className="space-y-3">
-              {Platform.OS == "ios" && <TouchableOpacity
-                onPress={handleAppleSignInSuccess}
-                className="rounded-full bg-black w-full items-center justify-center h-14 flex-row"
-                activeOpacity={0.8}
-              >
-                <AppleIcon
-                  name="apple"
-                  size={22}
-                  color="white"
-                  style={{ marginRight: 8 }}
-                />
-                <Text className="text-white font-bold text-base">
-                  Continuer avec Apple
-                </Text>
-              </TouchableOpacity>
-              }
-
-              <GoogleSignInComponent
-                onSignInSuccess={handleGoogleSignInSuccess}
-                onSignInFailure={handleSignInFailure}
-              />
-            </View> */}
 
             {/* Lien vers la connexion */}
             <TouchableOpacity

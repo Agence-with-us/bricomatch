@@ -42,7 +42,6 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.log(error.request);
 
     // En cas d'erreur, si l'API retourne des détails, utiliser showApiErrorToast,
     // sinon afficher un message d'erreur générique.

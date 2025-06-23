@@ -69,7 +69,6 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (nextAppState === 'background' || nextAppState === 'inactive') {
         // L'application passe en arrière-plan, on peut considérer que l'utilisateur quitte
-        console.log("Application en arrière-plan, nettoyage des ressources");
         // Nettoyage sans message d'alerte car l'app est en arrière-plan
         cleanUp();
         
@@ -169,7 +168,6 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
       //@ts-ignore
       peerConnection.current.oniceconnectionstatechange = () => {
         const iceState = peerConnection.current?.iceConnectionState;
-        console.log('ICE connection state changed:', iceState);
         
         if (iceState === 'disconnected' || iceState === 'failed' || iceState === 'closed') {
           // La connexion est perdue

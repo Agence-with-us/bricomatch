@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import GoBack from '../common/GoBack'; // Ajustez le chemin selon votre structure
+import { navigate, navigationRef } from '../../services/navigationService';
 
 /**
  * Composant FixedHeader
@@ -12,17 +13,33 @@ import GoBack from '../common/GoBack'; // Ajustez le chemin selon votre structur
  * @param {object} titleStyle - Style personnalisé pour le titre
  * @param {string} backgroundColor - Couleur de fond du header
  */
-const FixedHeader = ({
-   title,
+interface FixedHeaderProps {
+  title: string;
+  showBackButton?: boolean;
+  onBackPress?: () => void;
+  rightComponent?: React.ReactNode;
+  customClasses?: string;
+}
+
+const FixedHeader: React.FC<FixedHeaderProps> = ({
+  title,
   showBackButton = true,
   onBackPress,
   rightComponent,
   customClasses = "",
 }) => {
+  // Fallback pour onBackPress si non fourni
+  const handleBack = onBackPress || (() => {
+    if (navigationRef.current && navigationRef.current.canGoBack()) {
+      navigationRef.current.goBack();
+    } else {
+      navigate('Home');
+    }
+  });
   return (
     <View className={`pt-12 px-2.5 bg-white ${customClasses}`}>
       <View className="w-full flex-row justify-between items-center mb-5">
-        {showBackButton ? <GoBack onPress={onBackPress} /> : <View />}
+        {showBackButton ? <GoBack onGoBack={handleBack} /> : <View />}
         <Text className="text-muted text-xl font-bold flex-1 text-center">
           {title}
         </Text>
@@ -34,41 +51,6 @@ const FixedHeader = ({
   );
 };
 
-const styles = StyleSheet.create({
-  headerContainer: {
-    paddingTop: 48, // Pour la status bar
-    paddingHorizontal: 10,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 44,
-  },
-  leftSection: {
-    width: 44,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-  },
-  centerSection: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rightSection: {
-    width: 44,
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#374151',
-    textAlign: 'center',
-  },
-});
+
 
 export default FixedHeader;

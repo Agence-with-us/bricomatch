@@ -3,53 +3,132 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 import { navigationRef, setNavigationReady } from "../services/navigationService";
 import { useSelector, useDispatch } from 'react-redux';
-import { ActivityIndicator, StatusBar, View } from 'react-native';
+import { StatusBar, View } from 'react-native';
 
 // Écrans d'authentification
-import AppLandingScreen from "../screens/authentification/AppLandingScreen";
 import LoginScreen from "../screens/authentification/LoginScreen";
 import RegisterScreen from "../screens/authentification/RegisterScreen";
-
-
-// Écran de chargement
-import * as SplashScreen from 'expo-splash-screen';
 import CompleteProfileScreen from '../components/elements/auth/CompleteProfileScreen';
+
+// Écrans principaux
+import HomeScreen from "../screens/Accueil/HomeScreen";
+import AppointmentsScreen from '../screens/appointments/AppointmentsScreen';
+import PaymentScreen from '../screens/payment/PaymentScreen';
+import ProfileScreen from '../screens/profile/ProfileScreen';
+import ProfileInfoScreen from '../screens/profile/ProfileInfoScreen';
+import ServicesList from '../components/elements/services/ServicesList';
+import CallHome from '../screens/Accueil/CallHome';
+import FicheProfessionnelScreen from '../screens/fiche-professionnel/FicheProfessionnelScreen';
+import ConnectedUserAvailabilityScreen from '../screens/availabilities/ConnectedUserAvailability';
+import ValidationScreen from '../components/common/ValidationScreen';
+import FacturesScreen from '../screens/factures/FacturesScreen';
+import FactureDetailsScreen from '../screens/factures/factureDetailsScreen';
+import VideoCallScreen from '../screens/calls/VideoCallScreen';
+import ChatListScreen from '../screens/chat/ChatsListScreen';
+import ChatScreen from '../screens/chat/ChatScreen';
+
+// Components
+import RoleBasedTabs from '../components/elements/navigation/RoleBasedTabs';
+import FixedHeader from '../components/common/FixedHeader';
+import ProtectedRoute from './ProtectedRoute';
+
+// Store
 import { RootState } from '../store/store';
 import { checkAuthStatus } from '../store/authentification/reducer';
 
-import MainLayout from '../components/elements/navigation/MainLayout';
+// Splash Screen
+import * as SplashScreen from 'expo-splash-screen';
+import AppLandingScreen from '../screens/authentification/AppLandingScreen';
+import HomeSearch from '../components/elements/home/HomeSearch';
 
 const Stack = createStackNavigator();
 
-// Stack de navigation pour les utilisateurs non authentifiés
-const AuthStack = () => (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="AppLandingScreen" component={AppLandingScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen
-            name="CompleteProfile"
-            component={CompleteProfileScreen}
-            options={{
-                headerShown: true,
-                title: 'Compléter votre profil',
-                headerLeft: () => null, // Empêcher le retour arrière
-            }}
+// Configuration des écrans avec header fixe
+export const getScreenOptions = (screenName: string) => {
+  const screensWithFixedHeader = {
+    'ChatList': {
+      headerShown: true,
+      header: () => (
+        <FixedHeader
+          title="Messages"
+          customClasses={'bg-white'}
+          onBackPress={() => {}}
+          rightComponent={null}
         />
-    </Stack.Navigator>
-);
+      ),
+    },
+    'Appointments': {
+      headerShown: true,
+      header: () => (
+        <FixedHeader
+          title="Mes RDV"
+          onBackPress={() => {}}
+          rightComponent={null}
+        />
+      ),
+    },
+    'FacturesScreen': {
+      headerShown: true,
+      header: () => (
+        <FixedHeader
+          title="Mes Factures"
+          onBackPress={() => {}}
+          rightComponent={null}
+        />
+      ),
+    },
+    'ProfileScreen': {
+      headerShown: true,
+      header: () => (
+        <FixedHeader
+          title="Mon compte"
+          showBackButton={true}
+          onBackPress={() => {}}
+          rightComponent={null}
+        />
+      ),
+    },
+    'ProfileInfoScreen': {
+      headerShown: true,
+      header: () => (
+        <FixedHeader
+          title="Mon profil"
+          showBackButton={true}
+          onBackPress={() => {}}
+          rightComponent={null}
+        />
+      ),
+    },
+    'Payment': {
+      headerShown: true,
+      header: () => (
+        <FixedHeader
+          title="Paiement sécurisé"
+          showBackButton={true}
+          onBackPress={() => {}}
+          rightComponent={null}
+        />
+      ),
+    },
+    'HomeSearch': {
+      headerShown: true,
+      header: () => (
+        <FixedHeader
+          title="Recherche"
+          showBackButton={true}
+          customClasses={'bg-transparent'}
+          onBackPress={() => {}}
+          rightComponent={null}
+        />
+      ),
+    },
+  };
 
-// Stack de navigation pour les utilisateurs authentifiés
-const AppStack = () => (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Main" component={MainLayout} />
-    </Stack.Navigator>
-);
-
+  return screensWithFixedHeader[screenName as keyof typeof screensWithFixedHeader] || { headerShown: false };
+};
 
 const AppNavigator = () => {
     const dispatch = useDispatch();
-    const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
 
     // Empêcher l'écran de démarrage de se cacher automatiquement
     SplashScreen.preventAutoHideAsync();
@@ -71,17 +150,134 @@ const AppNavigator = () => {
         <View style={{ flex: 1 }}>
             {/* Configuration de la barre de statut */}
             <StatusBar
-                barStyle="dark-content" // ou "light-content" pour du texte blanc sur fond sombre
-                backgroundColor="transparent" // Fond transparent
-                translucent={true} // Permet à la barre de statut de s'afficher correctement
+                barStyle="dark-content"
+                backgroundColor="transparent"
+                translucent={true}
             />
 
             <NavigationContainer ref={navigationRef} onReady={() => setNavigationReady()}>
-                {isAuthenticated && user ? <AppStack /> : <AuthStack />}
+                <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1 }}>
+                        <Stack.Navigator screenOptions={{ headerShown: false }}>
+                            <Stack.Screen name="Home" component={HomeScreen} />
+                            <Stack.Screen name="Login" component={LoginScreen} />
+                            <Stack.Screen name="Register" component={RegisterScreen} />
+                            <Stack.Screen name="AppLandingScreen" component={AppLandingScreen} />
+                            <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
+
+                            <Stack.Screen
+                                name="Appointments"
+                                children={() => (
+                                    <ProtectedRoute>
+                                        <AppointmentsScreen />
+                                    </ProtectedRoute>
+                                )}
+                                options={getScreenOptions('Appointments')}
+                            />
+                            <Stack.Screen
+                                name="ChatList"
+                                children={() => (
+                                    <ProtectedRoute>
+                                        <ChatListScreen />
+                                    </ProtectedRoute>
+                                )}
+                                options={getScreenOptions('ChatList')}
+                            />
+                            <Stack.Screen
+                                name="ChatScreen"
+                                children={() => (
+                                    <ProtectedRoute>
+                                        <ChatScreen />
+                                    </ProtectedRoute>
+                                )}
+                                options={getScreenOptions('ChatScreen')}
+                            />
+                            <Stack.Screen 
+                                name="ValidationScreen" 
+                                children={() => (
+                                    <ProtectedRoute>
+                                        <ValidationScreen />
+                                    </ProtectedRoute>
+                                )}
+                            />
+                            <Stack.Screen
+                                name="ProfileScreen"
+                                children={() => (
+                                    <ProtectedRoute>
+                                        <ProfileScreen />
+                                    </ProtectedRoute>
+                                )}
+                                options={getScreenOptions('ProfileScreen')}
+                            />
+                            <Stack.Screen
+                                name="ProfileInfoScreen"
+                                children={() => (
+                                    <ProtectedRoute>
+                                        <ProfileInfoScreen navigation={undefined} />
+                                    </ProtectedRoute>
+                                )}
+                                options={getScreenOptions('ProfileInfoScreen')}
+                            />
+                            <Stack.Screen
+                                name="CallHome"
+                                children={() => (
+                                    <ProtectedRoute>
+                                        <CallHome navigation={undefined} />
+                                    </ProtectedRoute>
+                                )}
+                            />
+                            <Stack.Screen
+                                name="FacturesScreen"
+                                children={() => (
+                                    <ProtectedRoute>
+                                        <FacturesScreen />
+                                    </ProtectedRoute>
+                                )}
+                                options={getScreenOptions('FacturesScreen')}
+                            />
+                            <Stack.Screen
+                                name="FactureDetailsScreen"
+                                children={() => (
+                                    <ProtectedRoute>
+                                        <FactureDetailsScreen />
+                                    </ProtectedRoute>
+                                )}
+                            />
+                            <Stack.Screen
+                                name="VideoCall"
+                                children={() => (
+                                    <ProtectedRoute>
+                                        <VideoCallScreen />
+                                    </ProtectedRoute>
+                                )}
+                            />
+                            <Stack.Screen name="HomeSearch" component={HomeSearch} options={getScreenOptions('HomeSearch')} />
+                            <Stack.Screen name="Services" component={ServicesList} />
+                            <Stack.Screen name="FicheProfessionnel" component={FicheProfessionnelScreen} />
+                            <Stack.Screen
+                                name="Payment"
+                                children={() => (
+                                    <ProtectedRoute>
+                                        <PaymentScreen />
+                                    </ProtectedRoute>
+                                )}
+                                options={getScreenOptions('Payment')}
+                            />
+                            <Stack.Screen
+                                name="ConnectedUserAvailability"
+                                children={() => (
+                                    <ProtectedRoute>
+                                        <ConnectedUserAvailabilityScreen />
+                                    </ProtectedRoute>
+                                )}
+                            />
+                        </Stack.Navigator>
+                    </View>
+                    <RoleBasedTabs />
+                </View>
             </NavigationContainer>
         </View>
     );
-
 };
 
 export default AppNavigator;

@@ -200,9 +200,7 @@ const FacturesScreen = () => {
   // Fonction pour télécharger la facture PDF
   const downloadInvoice = (fileUrl: string, invoiceNumber: string) => {
       Linking.openURL(fileUrl);
-    // Logique pour télécharger le PDF
-    // Vous pouvez utiliser une bibliothèque comme react-native-fs ou ouvrir dans le navigateur
-    console.log('Téléchargement de la facture:', invoiceNumber, fileUrl);
+   
   };
 
   return (

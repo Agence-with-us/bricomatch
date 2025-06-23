@@ -165,8 +165,7 @@ export default function VideoCallScreen() {
                 lastCallDuration: newCallRecord
             });
 
-            console.log(`Appel ${newCallRecord.callIndex} sauvegardé: ${durationMinutes} minutes`);
-            console.log(`Durée totale: ${totalDurationMinutes} minutes`);
+        
         } catch (error) {
             console.error('Erreur lors de la sauvegarde de la durée:', error);
         }
@@ -236,8 +235,7 @@ export default function VideoCallScreen() {
 
         const [minutesStr] = elapsedTime.split(':');
         const minutes = parseInt(minutesStr, 10);
-        console.log("fffffffffffffffff")
-        console.log(minutes)
+      
 
         //si un minute est passé
         if (currentUser?.role !== UserRole.PRO)

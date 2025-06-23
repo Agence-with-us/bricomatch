@@ -19,18 +19,15 @@ interface GoogleSignInComponentProps {
 
 const GoogleSignInComponent: React.FC<GoogleSignInComponentProps> = ({ onSignInSuccess, onSignInFailure }) => {
 
-  console.log(Constants.expoConfig?.extra?.googleSignInWebClientId)
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleGoogleSignIn = async () => {
     try {
 
       setLoading(true);
-      console.log("userInfo : AVANT")
 
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
-      console.log("userInfo : AVANT")
       if (userInfo) {
         if (onSignInSuccess) {
           onSignInSuccess(userInfo);
@@ -39,19 +36,15 @@ const GoogleSignInComponent: React.FC<GoogleSignInComponentProps> = ({ onSignInS
     } catch (error: any) {
       console.error("Google SignIn Error: ", error.message);
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        console.log("SIGN_IN_CANCELLED")
         // L'utilisateur a annulé le processus de connexion
       } else if (error.code === statusCodes.IN_PROGRESS) {
-        console.log("IN_PROGRESS")
 
         // Le processus est déjà en cours
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-                console.log("PLAY_SERVICES_NOT_AVAILABLE")
 
         // Les services Google Play ne sont pas disponibles
       } else {
         // Autre erreur
-                console.log(error)
 
       }
     }
@@ -75,11 +68,11 @@ const GoogleSignInComponent: React.FC<GoogleSignInComponentProps> = ({ onSignInS
 
       {/* Loader */}
       <LogoSpinner
-          visible={loading}
-          message="Connexion en cours..."
-          rotationDuration={1500}
+        visible={loading}
+        message="Connexion en cours..."
+        rotationDuration={1500}
 
-        />
+      />
     </View>
   );
 };

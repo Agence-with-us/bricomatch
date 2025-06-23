@@ -21,7 +21,6 @@ import {
 import GoogleSignInComponent from '../../components/elements/auth/GoogleSignIn';
 import GoBack from '../../components/common/GoBack';
 import OutlinedTextInput from '../../components/common/OutlinedTextInput';
-import LoadingModal from '../../components/common/LoadingModal';
 import { navigate } from '../../services/navigationService';
 import AppleSignInComponent from '../../components/elements/auth/AppleSignInComponent';
 import LogoSpinner from '../../components/common/LogoSpinner';
@@ -93,7 +92,7 @@ const LoginScreen = () => {
 
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-background"
+      className="flex-1 pt-10 bg-background"
     >
       {/* Image de fond avec overlay pour meilleure visibilité du contenu */}
       <Image

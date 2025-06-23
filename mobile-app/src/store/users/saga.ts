@@ -66,7 +66,6 @@ function* enrichUsersWithServiceInfo(users: UserLocal[]): Generator<any, UserLoc
 // Saga pour récupérer tous les utilisateurs PRO avec informations de services
 function* fetchProUsersSaga(): SagaIterator {
   try {
-    console.log("fetchProUsersSaga")
     const usersRef = collection(firestore, 'users');
     const q = query(usersRef, where('role', '==', UserRole.PRO));
     const usersSnapshot = yield call(getDocs, q);

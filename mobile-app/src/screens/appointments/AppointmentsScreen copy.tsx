@@ -75,7 +75,6 @@ const AppointmentsScreen = () => {
             const userDoc = await getDoc(doc(firestore, 'users', otherUserId));
             if (userDoc.exists()) {
               const userData = userDoc.data();
-              console.log(userData)
 
               setUserInfoCache(prev => ({
                 ...prev,
@@ -153,7 +152,6 @@ const AppointmentsScreen = () => {
 
   // Joindre l'appel vidéo
   const joinVideoCall = async (roomId: string) => {
-    console.log("Tentative de rejoindre la salle:", roomId);
 
     try {
       // Vérifier si la salle existe et si elle contient une offre

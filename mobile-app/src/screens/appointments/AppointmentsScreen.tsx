@@ -3,9 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   SafeAreaView,
-  ActivityIndicator,
   RefreshControl,
   Alert,
   ScrollView,
@@ -17,68 +15,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { RootState } from '../../store/store';
 import { Appointment, AppointmentStatus, AppointmentWithOtherUserInfo } from '../../store/appointments/types';
 import { navigate } from '../../services/navigationService';
-import GoBack from '../../components/common/GoBack';
 import { User } from '../../types/UserType';
 import { mediaDevices } from 'react-native-webrtc';
 import { showToast } from '../../utils/toastNotification';
 import AppointmentCardItem from '../../components/elements/appointments/AppointmentCardItem';
 import axiosInstance from '../../config/axiosInstance';
 import LogoSpinner from '../../components/common/LogoSpinner';
-import { useNotifications } from '../../hooks/useNotifications';
 
 const AppointmentsScreen = () => {
   const [combinedAppointments, setCombinedAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { services } = useSelector((state: RootState) => state.services);
-  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
   
-  const { 
-    isInitialized, 
-    hasPermission, 
-    token, 
-    reinitializeNotifications,
-    getUserTokens 
-  } = useNotifications();
 
-  useEffect(() => {
-    // Afficher le statut des notifications quand ça change
-    if (isAuthenticated) {
-      console.log('📊 Statut notifications:', {
-        isInitialized,
-        hasPermission,
-        hasToken: !!token,
-        userId: user?.id
-      });
-    }
-  }, [isInitialized, hasPermission, token, isAuthenticated, user?.id]);
-
-  // Fonction pour débugger les tokens utilisateur
-  const checkUserTokens = async () => {
-    try {
-      const tokens = await getUserTokens();
-      console.log('🔍 Tokens utilisateur:', tokens);
-      Alert.alert(
-        'Tokens FCM', 
-        `Cet utilisateur a ${tokens.length} appareil(s) enregistré(s)`
-      );
-    } catch (error) {
-      console.error('Erreur récupération tokens:', error);
-    }
-  };
-
-  // Fonction pour réinitialiser les notifications
-  const handleReinitializeNotifications = async () => {
-    try {
-      const success = await reinitializeNotifications();
-      Alert.alert(
-        'Notifications', 
-        success ? 'Réinitialisées avec succès' : 'Échec de la réinitialisation'
-      );
-    } catch (error) {
-      console.error('Erreur réinitialisation:', error);
-    }
-  };
 
 
   // Récupérer l'utilisateur connecté depuis Redux

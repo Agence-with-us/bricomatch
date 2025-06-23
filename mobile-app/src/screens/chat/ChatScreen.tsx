@@ -71,7 +71,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
   // Get parameters from route or props
   const providedChatId = chat?.chatId || route.params.chat?.chatId;
   const otherUser = chat?.otherUserInfo || route.params.chat?.otherUserInfo;
-  console.log(providedChatId)
 
 
   // Effect pour initialiser le chatId
