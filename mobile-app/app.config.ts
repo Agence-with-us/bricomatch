@@ -3,7 +3,7 @@ import 'dotenv/config';
 export default {
   expo: {
     name: 'Bricomatch',
-    slug: 'Bricomatch',
+    slug: 'bricomatch',
     version: '1.0.2',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -22,12 +22,13 @@ export default {
         NSCameraUsageDescription: "Cette application a besoin d'accéder à votre caméra pour les appels vidéo",
         NSMicrophoneUsageDescription: "Cette application a besoin d'accéder à votre microphone pour les appels audio",
         NSPhotoLibraryUsageDescription: "Cette application a besoin d'accéder à vos photos pour partager des médias pendant les appels",
+        NSUserNotificationUsageDescription: "Cette application utilise les notifications pour vous envoyer des alertes importantes.",
         ITSAppUsesNonExemptEncryption: false
-
       }
     },
     android: {
       package: 'com.bricomatch.app',
+      googleServicesFile: './google-services.json',
       versionCode: 1,
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
@@ -44,7 +45,8 @@ export default {
         "android.permission.BLUETOOTH",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.CHANGE_NETWORK_STATE"
+        "android.permission.CHANGE_NETWORK_STATE",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     web: {
@@ -60,17 +62,19 @@ export default {
       firebaseAppId: process.env.FIREBASE_APP_ID,
       firebaseDatabaseURL: process.env.FIREBASE_DATABASE_URL,
       googleSignInWebClientId: process.env.GOOGLE_SIGN_IN_WEB_CLIENT_ID,
-      googleSignInIOSClientId: process.env.GOOGLE_SIGN_IN_IOS_CLIENT_ID,
+      googleSignInIOSUrlSchema: process.env.GOOGLE_SIGN_IN_IOS_URL_SCHEMA,
       stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
       eas: {
         projectId: process.env.EAS_PROJECT_ID
       }
     },
     plugins: [
+      '@react-native-firebase/app',
+      '@react-native-firebase/messaging',
       [
         "@react-native-google-signin/google-signin",
         {
-          iosUrlScheme: "com.googleusercontent.apps.430777902292-6aajp6brddi4u34sqs6c5apg19lb4pjm"
+          iosUrlScheme: process.env.GOOGLE_SIGN_IN_IOS_URL_SCHEMA
         }
       ],
       [

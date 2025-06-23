@@ -253,3 +253,14 @@ export const ensureDeletedAccountExists = async (): Promise<void> => {
     throw error;
   }
 };
+
+
+export const getUserDetails = async (userId: string): Promise<UserLocal | null> => {
+  const userDoc = await usersCollection.doc(userId).get();
+  if (!userDoc.exists) {
+    return null;
+  }
+  const user = { id: userDoc.id, ...userDoc.data() } as UserLocal;
+  return user;
+}
+

@@ -14,13 +14,11 @@ import { doc, setDoc, serverTimestamp, getDoc, updateDoc } from 'firebase/firest
 
 import {
   ref,
-  uploadBytesResumable,
   getDownloadURL,
   uploadBytes
 } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
-import { nanoid } from 'nanoid';
+
 import { RootState } from '../store';
 import {
   loginSuccess,
@@ -57,6 +55,7 @@ import { navigate } from '../../services/navigationService';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { UserRole } from '../users/types';
 import axiosInstance from '../../config/axiosInstance';
+import NotificationService from '../../services/notificationService';
 
 // Fonction pour convertir une image locale en Blob
 const createBlobFromUri = async (uri: string): Promise<Blob> => {
@@ -127,9 +126,7 @@ function* removeLocalUserData() {
 function* loginSaga(action: PayloadAction<LoginRequestPayload>): SagaIterator {
   try {
     const { email, password } = action.payload;
-    console.log("loginSaga")
-    console.log(email)
-    console.log(password)
+
     // Authentification avec Firebase
     const userCredential = yield call(
       signInWithEmailAndPassword,
@@ -153,6 +150,8 @@ function* loginSaga(action: PayloadAction<LoginRequestPayload>): SagaIterator {
         id: userCredential.user.uid,
         ...userData
       });
+
+
     } else {
       yield put(loginFailure('Compte utilisateur non trouvé.'));
     }
@@ -248,6 +247,8 @@ function* registerSaga(action: PayloadAction<RegisterRequestPayload>): SagaItera
       // })
 
 
+
+
     } catch (firestoreError) {
       console.error("Erreur Firestore:", firestoreError);
 
@@ -325,6 +326,7 @@ function* loginWithGoogleSaga(action: PayloadAction<any>): SagaIterator {
         ...userDataToStore
       });
 
+
       // **🚀 Appel à l'API Stripe si le rôle est PRO**
       if (role === 'PRO') {
         yield call(axiosInstance.post, `/users/create-stripe-connect`);
@@ -382,6 +384,8 @@ function* loginWithGoogleSaga(action: PayloadAction<any>): SagaIterator {
           id: userId,
           ...userDataToStore
         });
+
+
 
         // Redirection vers Home pour les PARTICULIER
         navigate('Home');
@@ -462,6 +466,8 @@ function* loginWithAppleSaga(action: PayloadAction<any>): SagaIterator {
         ...userDataToStore
       });
 
+
+
       // Redirection basée sur le rôle stocké dans Firestore
       if (userDataToStore.role === UserRole.PRO) {
         navigate('Appointments');
@@ -514,6 +520,8 @@ function* loginWithAppleSaga(action: PayloadAction<any>): SagaIterator {
           id: userId,
           ...userDataToStore
         });
+
+
 
         // Redirection vers Home pour les PARTICULIER
         navigate('Home');
@@ -672,6 +680,7 @@ function* logoutSaga() {
     // 🍎 Déconnexion Apple 
     // 🧹 Nettoyage local
     yield call(removeLocalUserData);
+    yield call([NotificationService, NotificationService.removeCurrentToken]);
 
     // ✅ Succès
     yield put(logoutSuccess());
@@ -690,6 +699,8 @@ function* checkAuthStatusSaga(): SagaIterator {
 
     if (userData) {
       yield put(loginSuccess(userData));
+
+    
     } else {
       // Si pas de données locales, vérifier l'état d'authentification Firebase
       const currentUser = auth.currentUser;
@@ -711,6 +722,7 @@ function* checkAuthStatusSaga(): SagaIterator {
             id: currentUser.uid,
             ...firestoreUserData
           });
+
         } else {
           // L'utilisateur est authentifié mais n'a pas de profil complet
           yield put(navigateToCompleteProfile());

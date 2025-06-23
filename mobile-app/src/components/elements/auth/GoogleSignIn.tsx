@@ -8,7 +8,7 @@ import LogoSpinner from '../../common/LogoSpinner';
 // Configuration de Google Sign-In
 GoogleSignin.configure({
   webClientId: Constants.expoConfig?.extra?.googleSignInWebClientId,
-  iosClientId: Constants.expoConfig?.extra?.googleSignInIOSClientId,
+  iosClientId: Constants.expoConfig?.extra?.googleSignInIOSUrlSchema,
   offlineAccess: true,
 });
 

@@ -11,11 +11,12 @@ import {
 import { AuthRequest } from '../middleware/auth';
 import { Appointment, AppointmentStatus, UserRole } from '../types';
 import { createPaymentIntent, capturePaymentIntent, refundPayment } from '../services/paymentService';
-import { getUserById } from '../services/userService';
+import { getUserById, getUserDetails } from '../services/userService';
 import { generateInvoice } from '../services/invoiceService';
 import { ClientError } from '../helpers/ClientError';
 import { createOrActivateChat } from '../services/chatService';
 import { parisToUTC } from '../utils/date';
+import notificationPushService from '../services/notificationPushService';
 
 // Create a new appointment and initialize payment
 export const createAppointment = async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -44,7 +45,7 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
     }
 
     const utcDate = parisToUTC(timeSlot, dateTime);
-  
+
     // Calculer le montant de base et le montant total avec TVA
     const baseAmount = duration * 100;             // Montant hors TVA
     const vatAmount = Math.round(baseAmount * 0.2);  // TVA à 20%
@@ -105,6 +106,8 @@ export const confirmAppointment = async (req: AuthRequest, res: Response, next: 
     if (!req.user) {
       throw new ClientError("L'authentification est requise", 401);
     }
+    const userDetails = await getUserDetails(req.user.id);
+    console.log('user', userDetails);
 
     // Seul un professionnel (PRO) peut confirmer un rendez-vous
     if (req.user.role !== UserRole.PRO) {
@@ -124,16 +127,26 @@ export const confirmAppointment = async (req: AuthRequest, res: Response, next: 
 
     // Créer ou activer la discussion entre le PRO et le client
     let chatId: string | null = null;
-    try {
-      chatId = await createOrActivateChat(
-        req.user.id, // ID du PRO
-        appointment.clientId, // ID du client
-        appointment.id! // ID du rendez-vous
-      );
-    } catch (chatError) {
-      console.error('Erreur lors de la création/activation du chat:', chatError);
-      // Ne pas faire échouer la confirmation si le chat échoue
-    }
+
+    chatId = await createOrActivateChat(
+      req.user.id, // ID du PRO
+      appointment.clientId, // ID du client
+      appointment.id! // ID du rendez-vous
+    );
+
+
+    // 🔔 NOUVELLE FONCTIONNALITÉ : Envoyer une notification au client
+
+    await notificationPushService.sendAppointmentConfirmationNotification(
+      appointment.clientId,
+      {
+        proName: `${userDetails?.prenom} ${userDetails?.nom}`,
+        date: appointment.dateTime.toDate().toLocaleDateString('fr-FR'),
+        time: appointment.timeSlot,
+      }
+    );
+    console.log('✅ Notification de confirmation envoyée au client');
+
 
     return res.status(200).json({
       success: true,
@@ -190,6 +203,18 @@ export const autoriserPaiementAppointment = async (req: AuthRequest, res: Respon
     if (!appointment) {
       throw new ClientError("Rendez-vous non trouvé ou pas éligible à l'autorisation de paiement", 404);
     }
+
+    const userDetails = await getUserDetails(req.user!.id);
+
+    await notificationPushService.sendNewAppointmentNotification(
+      appointment.proId,
+      {
+        clientName: `${userDetails?.prenom} ${userDetails?.nom}`,
+        date: appointment.dateTime.toDate().toLocaleDateString('fr-FR'),
+        time: appointment.timeSlot,
+        appointmentId: appointment.id!
+      }
+    );
 
     return res.status(200).json({
       success: true,

@@ -9,6 +9,7 @@ import 'react-native-gesture-handler';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import Constants from 'expo-constants';
 
+
 export default function App() {
   return (
     <Provider store={store}>
