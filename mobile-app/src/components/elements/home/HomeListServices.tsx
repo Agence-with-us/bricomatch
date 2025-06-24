@@ -36,8 +36,8 @@ import { navigate } from "../../../services/navigationService";
                         >
                             <View className="absolute w-full h-full bg-muted/30 z-[2]"/>
                             <Image src={service.imageUrl} className="w-full h-52 rounded-lg z-[1]" resizeMode="cover" />
-                            <View className="absolute h-full w-full inset-0 justify-center items-center">
-                                <Text className="text-white text-[19px] font-bold text-center z-[3]">{service.name}</Text>
+                            <View className="absolute h-full w-full inset-0 justify-center items-center z-[3]">
+                                <Text className="text-white text-[19px] font-bold text-center">{service.name}</Text>
                             </View>
                         </TouchableOpacity>
                     ))}

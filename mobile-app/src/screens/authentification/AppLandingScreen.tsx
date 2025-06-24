@@ -1,9 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { navigate } from "../../services/navigationService";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "../../store/store";
-import { fetchServicesRequest } from "../../store/services/reducer";
+
 import { Icon } from "react-native-paper";
 
 const authentificationImage = require("../../../assets/validation/authentification.png");
@@ -18,14 +16,7 @@ export default function AppLandingScreen() {
     const translateY2 = useRef(new Animated.Value(0)).current;
     const skipAnim = useRef(new Animated.Value(0)).current;
 
-    const dispatch = useDispatch();
-    const { services } = useSelector((state: RootState) => state.services);
-
-
-    useEffect(() => {
-        if (services.length == 0)
-            dispatch(fetchServicesRequest()); // Charger les services au montage du composant
-    }, [dispatch]);
+   
 
     useEffect(() => {
         Animated.timing(translateY, {

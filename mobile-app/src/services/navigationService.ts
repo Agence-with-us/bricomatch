@@ -60,7 +60,7 @@ export function replace<T extends keyof RootStackParamList>(
   params?: RootStackParamList[T]
 ) {
   if (navigationRef.current && isNavigationReady) {
-    navigationRef.current.replace(name as any, params);
+    navigationRef.current.navigate(name as any, params);
   } else {
     navigationQueue.push({
       type: 'replace',
@@ -111,7 +111,7 @@ export function addNavigationListener<T extends keyof EventMapCore<any>>(
   callback: EventListenerCallback<EventMapCore<any>, T>
 ) {
   if (navigationRef.current) {
-    return navigationRef.current.addListener(type, callback);
+    return navigationRef.current.addListener(type as any, callback as any);
   }
 
   // Retourner une fonction vide si le navigation ref n'est pas prêt

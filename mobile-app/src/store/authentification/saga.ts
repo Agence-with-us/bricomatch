@@ -141,35 +141,63 @@ function* loginSaga(action: PayloadAction<LoginRequestPayload>): SagaIterator {
   try {
     const { email, password } = action.payload;
 
-    // Authentification avec Firebase
+    console.log('🔐 Tentative de connexion pour:', email);
+
+    // Timeout de sécurité pour éviter les blocages
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout de connexion')), 15000); // 15 secondes
+    });
+
+    // Authentification avec Firebase avec timeout
     const userCredential = yield call(
-      signInWithEmailAndPassword,
-      auth,
-      email,
-      password
+      Promise.race,
+      [
+        signInWithEmailAndPassword(auth, email, password),
+        timeoutPromise
+      ]
     );
 
-    // Récupération des données utilisateur depuis Firestore
-    const userDoc = yield call(getDoc, doc(firestore, 'users', userCredential.user.uid));
+    console.log('✅ Authentification Firebase réussie');
+
+    // Récupération des données utilisateur depuis Firestore avec timeout
+    const userDoc = yield call(
+      Promise.race,
+      [
+        getDoc(doc(firestore, 'users', userCredential.user.uid)),
+        timeoutPromise
+      ]
+    );
 
     if (userDoc.exists()) {
       const userData = userDoc.data() as User;
-      yield put(loginSuccess({
-        id: userCredential.user.uid,
-        ...userData
-      }));
+      const completeUserData = {
+        ...userData,
+        id: userCredential.user.uid
+      };
+
+      console.log('✅ Données utilisateur récupérées:', completeUserData.id);
 
       // Enregistrer les données utilisateur localement
-      yield call(storeUserDataLocally, {
-        id: userCredential.user.uid,
-        ...userData
-      });
+      yield call(storeUserDataLocally, completeUserData);
 
+      // Dispatch de l'action success
+      yield put(loginSuccess(completeUserData));
+
+      console.log('✅ Connexion réussie, redirection...');
+
+      // Redirection basée sur le rôle
+      if (userData.role === UserRole.PRO) {
+        navigate('Appointments');
+      } else {
+        navigate('Home');
+      }
 
     } else {
+      console.error('❌ Compte utilisateur non trouvé dans Firestore');
       yield put(loginFailure('Compte utilisateur non trouvé.'));
     }
   } catch (error: any) {
+    console.error('❌ Erreur lors de la connexion:', error);
     let errorMessage = 'Erreur lors de la connexion.';
 
     // Gestion des erreurs Firebase Auth
@@ -191,6 +219,11 @@ function* loginSaga(action: PayloadAction<LoginRequestPayload>): SagaIterator {
         break;
       case 'auth/too-many-requests':
         errorMessage = 'Trop de tentatives, veuillez réessayer plus tard.';
+        break;
+      default:
+        if (error.message === 'Timeout de connexion') {
+          errorMessage = 'Connexion trop lente, veuillez réessayer.';
+        }
         break;
     }
     yield put(loginFailure(errorMessage));
@@ -233,7 +266,7 @@ function* registerSaga(action: PayloadAction<RegisterRequestPayload>): SagaItera
     try {
       const userDocRef = doc(firestore, 'users', userId);
 
-      yield call(setDoc, userDocRef, {
+      yield call(setDoc as any, userDocRef, {
         ...userData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -292,8 +325,6 @@ function* registerSaga(action: PayloadAction<RegisterRequestPayload>): SagaItera
 
 function* loginWithGoogleSaga(action: PayloadAction<any>): SagaIterator {
   try {
-
-
     const userData = action.payload.data;
     const role = action.payload.role;
     const { idToken } = userData;
@@ -316,26 +347,22 @@ function* loginWithGoogleSaga(action: PayloadAction<any>): SagaIterator {
 
     if (userDoc.exists()) {
       // ✅ L'utilisateur existe dans Firestore - récupération des données existantes
-      userDataToStore = userDoc.data() as User;
-
+      const firestoreData = userDoc.data() as User;
+      userDataToStore = {
+        ...firestoreData,
+        id: userId
+      };
 
       // Enregistrement du login dans Redux et stockage local
-      yield put(loginSuccess({
-        id: userId,
-        ...userDataToStore
-      }));
-
-      yield call(storeUserDataLocally, {
-        id: userId,
-        ...userDataToStore
-      });
-
+      yield put(loginSuccess(userDataToStore));
+      yield call(storeUserDataLocally, userDataToStore);
 
       // **🚀 Appel à l'API Stripe si le rôle est PRO**
       if (role === 'PRO') {
         yield call(axiosInstance.post, `/users/create-stripe-connect`);
         console.log(`🔄 Compte Stripe Connect demandé pour le PRO ${userId}`);
       }
+      
       // Redirection basée sur le rôle stocké dans Firestore
       if (userDataToStore.role === UserRole.PRO) {
         navigate('Appointments');
@@ -350,12 +377,12 @@ function* loginWithGoogleSaga(action: PayloadAction<any>): SagaIterator {
         console.warn("Nouvel utilisateur PRO. Redirection vers la complétion de profil.");
 
         const newUserData: User = {
-          id: userId,
           email: userCredential.user.email || '',
           nom: userData.user.givenName || '',
           prenom: userData.user.familyName || '',
           photoUrl: userData.user.photo || '',
           role,
+          id: userId,
         };
 
         yield put(setTempUserData(newUserData));
@@ -365,31 +392,22 @@ function* loginWithGoogleSaga(action: PayloadAction<any>): SagaIterator {
       } else {
         // Pour un PARTICULIER, créer automatiquement le profil
         userDataToStore = {
-          id: userId,
           email: userCredential.user.email || '',
           nom: userData.user.givenName || '',
           prenom: userData.user.familyName || '',
           photoUrl: userData.user.photo || '',
           role: UserRole.PARTICULIER, // S'assurer que le rôle est bien PARTICULIER
-          createdAt: new Date().toISOString(),
+          id: userId,
         };
 
         // Sauvegarde des données dans Firestore
-        yield call(setDoc, doc(firestore, 'users', userId), userDataToStore);
+        const userDocRef = doc(firestore, 'users', userId);
+        yield call(setDoc as any, userDocRef, userDataToStore);
         console.log("Nouveau compte PARTICULIER créé automatiquement");
 
         // Enregistrement du login dans Redux et stockage local
-        yield put(loginSuccess({
-          id: userId,
-          ...userDataToStore
-        }));
-
-        yield call(storeUserDataLocally, {
-          id: userId,
-          ...userDataToStore
-        });
-
-
+        yield put(loginSuccess(userDataToStore));
+        yield call(storeUserDataLocally, userDataToStore);
 
         // Redirection vers Home pour les PARTICULIER
         navigate('Home');
@@ -458,12 +476,10 @@ function* loginWithAppleSaga(action: PayloadAction<any>): SagaIterator {
 
       // Enregistrement du login dans Redux et stockage local
       yield put(loginSuccess({
-        id: userId,
         ...userDataToStore
       }));
 
       yield call(storeUserDataLocally, {
-        id: userId,
         ...userDataToStore
       });
 
@@ -508,17 +524,15 @@ function* loginWithAppleSaga(action: PayloadAction<any>): SagaIterator {
         };
 
         // Sauvegarde des données dans Firestore
-        yield call(setDoc, doc(firestore, 'users', userId), userDataToStore);
+        yield call(setDoc as any, doc(firestore, 'users', userId), userDataToStore);
         console.log("Nouveau compte PARTICULIER créé automatiquement");
 
         // Enregistrement du login dans Redux et stockage local
         yield put(loginSuccess({
-          id: userId,
           ...userDataToStore
         }));
 
         yield call(storeUserDataLocally, {
-          id: userId,
           ...userDataToStore
         });
 
@@ -729,13 +743,11 @@ function* checkAuthStatusSaga(): SagaIterator {
           const firestoreUserData = userDoc.data() as User;
 
           yield put(loginSuccess({
-            id: currentUser.uid,
             ...firestoreUserData
           }));
 
           // Enregistrer les données utilisateur localement
           yield call(storeUserDataLocally, {
-            id: currentUser.uid,
             ...firestoreUserData
           });
 

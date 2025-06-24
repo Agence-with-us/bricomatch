@@ -355,7 +355,9 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
                     onPress={() => setShowServicePicker(!showServicePicker)}
                   >
                     <Text className={serviceTypeId ? "text-gray-800" : "text-gray-400"}>
-                      {serviceTypeId || 'Sélectionner un service'}
+                      {serviceTypeId
+                        ? (services.find(s => s.id === serviceTypeId)?.name || 'Sélectionner un service')
+                        : 'Sélectionner un service'}
                     </Text>
                     <View className="w-5 h-5">
                       <Icon name="chevron-down" size={20} color="#A0AEC0" />

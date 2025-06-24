@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import Icon from "react-native-vector-icons/Ionicons";
@@ -10,8 +10,9 @@ import { ProfileStatusAvatar } from '../../components/elements/fiche-professionn
 import AvailabilityCalendar from '../../components/elements/appointments/AvailabilityCalendar';
 import AppointmentBookingModal from '../../components/elements/appointments/AppointmentBookingModal';
 import { navigate } from '../../services/navigationService';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store/store';
+import { fetchAvailabilityRequest } from '../../store/availability/reducer';
 
 
 export const FicheProfessionnelScreen: React.FC = () => {
@@ -24,6 +25,13 @@ export const FicheProfessionnelScreen: React.FC = () => {
     const [openDirectToSlots, setOpenDirectToSlots] = useState<boolean>(false);
     const [defaultDate, setDefaultDate] = useState<string>('');
     const { user } = useSelector((state: RootState) => state.auth);
+    const dispatch = useDispatch();
+
+     // Au chargement, récupérer les disponibilités du professionnel
+     useEffect(() => {
+            dispatch(fetchAvailabilityRequest({ userId: selectedProffesionnel.id, type: 'other' }));
+        
+    }, [ selectedProffesionnel.id]);
     
     const handleBookModalAppointment = () => {
         if (!user) {

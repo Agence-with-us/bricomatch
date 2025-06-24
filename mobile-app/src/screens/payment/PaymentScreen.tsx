@@ -8,6 +8,8 @@ import {
     ActivityIndicator,
     SafeAreaView,
     Animated,
+    Keyboard,
+    Platform,
 } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../types/RootStackParamList';
@@ -228,6 +230,14 @@ export default function PaymentScreen() {
                             }}
 
                         />
+                        {Platform.OS === 'ios' && (
+                          <TouchableOpacity
+                            className='m-2 ml-auto bg-[#FF5722] p-2 rounded-lg items-center justify-end'
+                            onPress={() => Keyboard.dismiss()}
+                          >
+                            <Text className='text-white text-center'>Terminer</Text>
+                          </TouchableOpacity>
+                        )}
                     </View>
 
                     <View style={styles.securityInfo}>

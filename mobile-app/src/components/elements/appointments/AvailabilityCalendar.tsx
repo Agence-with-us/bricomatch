@@ -32,11 +32,9 @@ interface AvailabilityCalendarProps {
 }
 
 const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
-    professionalId,
     onDateSelect,
     defaultDate
 }) => {
-    const dispatch = useDispatch();
 
     // State local
     // Initialise `selectedDate` avec la valeur passée ou le jour actuel
@@ -51,13 +49,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         .filter(key => key !== 'id')
         .some(day => Array.isArray((otherProAvailability as any)[day]) && (otherProAvailability as any)[day].length > 0);
 
-    // Au chargement, récupérer les disponibilités du professionnel
-    useEffect(() => {
-        // Ne fetch que si les dispos ne sont pas déjà celles du bon pro
-        if (!otherProAvailability || typeof (otherProAvailability as any).id !== 'string' || (otherProAvailability as any).id !== professionalId) {
-            dispatch(fetchAvailabilityRequest({ userId: professionalId, type: 'other' }));
-        }
-    }, [dispatch, professionalId, otherProAvailability]);
+   
 
     // Mettre à jour les jours marqués lorsque les disponibilités changent ou lorsque le mois affiché change
     useEffect(() => {

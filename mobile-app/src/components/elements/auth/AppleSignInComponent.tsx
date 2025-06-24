@@ -83,15 +83,7 @@ const AppleSignInComponent: React.FC<AppleSignInComponentProps> = ({ onSignInSuc
     <View className="items-center">
       {Platform.OS === 'ios' && isAppleSignInAvailable ? (
         <>
-          {/* Option 1: Bouton natif Apple */}
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-            cornerRadius={30}
-            style={{ width: '100%', height: 56, marginTop: 8 }}
-            onPress={handleAppleSignIn}
-          />
-
+         
           {/* Option 2: Bouton personnalisé similaire au style Google */}
           <TouchableOpacity
             onPress={handleAppleSignIn}

@@ -16,7 +16,6 @@ import AppointmentsScreen from '../screens/appointments/AppointmentsScreen';
 import PaymentScreen from '../screens/payment/PaymentScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import ProfileInfoScreen from '../screens/profile/ProfileInfoScreen';
-import ServicesList from '../components/elements/services/ServicesList';
 import CallHome from '../screens/Accueil/CallHome';
 import FicheProfessionnelScreen from '../screens/fiche-professionnel/FicheProfessionnelScreen';
 import ConnectedUserAvailabilityScreen from '../screens/availabilities/ConnectedUserAvailability';
@@ -33,7 +32,6 @@ import FixedHeader from '../components/common/FixedHeader';
 import ProtectedRoute from './ProtectedRoute';
 
 // Store
-import { RootState } from '../store/store';
 import { checkAuthStatus } from '../store/authentification/reducer';
 
 // Splash Screen
@@ -252,7 +250,6 @@ const AppNavigator = () => {
                                 )}
                             />
                             <Stack.Screen name="HomeSearch" component={HomeSearch} options={getScreenOptions('HomeSearch')} />
-                            <Stack.Screen name="Services" component={ServicesList} />
                             <Stack.Screen name="FicheProfessionnel" component={FicheProfessionnelScreen} />
                             <Stack.Screen
                                 name="Payment"

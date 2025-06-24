@@ -3,7 +3,7 @@ import 'dotenv/config';
 export default {
   expo: {
     name: 'Bricomatch',
-    slug: 'Bricomatch',
+    slug: 'bricomatch',
     version: '1.0.2',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -19,6 +19,7 @@ export default {
       bundleIdentifier: 'com.bricomatch.app',
       googleServicesFile: './src/fichier-sensibles/GoogleService-Info.plist',
       bitcode: false,
+      buildNumber: '8',
       infoPlist: {
         NSCameraUsageDescription: "Cette application a besoin d'accéder à votre caméra pour les appels vidéo",
         NSMicrophoneUsageDescription: "Cette application a besoin d'accéder à votre microphone pour les appels audio",
@@ -30,7 +31,7 @@ export default {
     android: {
       package: 'com.bricomatch.app',
       googleServicesFile: './src/fichier-sensibles/google-services.json',
-      versionCode: 1,
+      versionCode: 8,
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
         backgroundColor: '#F95200',
@@ -63,6 +64,7 @@ export default {
       firebaseAppId: process.env.FIREBASE_APP_ID,
       firebaseDatabaseURL: process.env.FIREBASE_DATABASE_URL,
       googleSignInWebClientId: process.env.GOOGLE_SIGN_IN_WEB_CLIENT_ID,
+      googleSignInIOSClientId: process.env.GOOGLE_SIGN_IN_IOS_CLIENT_ID,
       googleSignInIOSUrlSchema: "com.googleusercontent.apps.312593652235-uc1oku08gc6jcotklkin18a6j68c9omv",
       stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
       eas: {
@@ -90,6 +92,7 @@ export default {
         {
           ios: {
             useFrameworks: "static",
+            deploymentTarget: "15.1"
           },
         }
       ]

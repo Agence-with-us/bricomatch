@@ -1,13 +1,8 @@
 import messaging from '@react-native-firebase/messaging';
 import { firestore } from '../config/firebase.config';
 import {
-  collection,
   doc,
   setDoc,
-  deleteDoc,
-  query,
-  where,
-  getDocs,
   arrayUnion,
   arrayRemove,
   updateDoc,
@@ -16,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, PermissionsAndroid, Alert } from 'react-native';
+import notifee from '@notifee/react-native';
 
 class NotificationService {
   isInitialized: boolean;
@@ -246,8 +242,17 @@ class NotificationService {
   /**
    * Gère les notifications reçues en foreground
    */
-  handleForegroundNotification(remoteMessage: any) {
-    console.log('Traitement notification foreground:', remoteMessage.notification?.title);
+  async handleForegroundNotification(remoteMessage: any) {
+
+    await notifee.displayNotification({
+      title: remoteMessage.notification?.title || 'Nouvelle notification',
+      body: remoteMessage.notification?.body || 'Notification reçue',
+      android: {
+        channelId: 'default',
+        smallIcon: 'ic_launcher',
+        color: '#FF5722',
+      },
+    });
   }
 
   /**
@@ -314,6 +319,8 @@ class NotificationService {
    */
   async removeCurrentToken() {
     try {
+      console.log('Suppression du token actuel');
+      console.log('currentUserId', this.currentUserId);
       if (!this.currentUserId) {
         console.warn('⚠️ Pas d\'utilisateur connecté pour la suppression');
         return;
@@ -331,8 +338,8 @@ class NotificationService {
 
       // Trouver les tokens de cet appareil
       const tokensToRemove = existingTokens.filter((tokenData: any) => {
-        return tokenData.platform === Platform.OS && 
-               tokenData.version === Platform.Version;
+        return tokenData.platform === Platform.OS &&
+          tokenData.version === Platform.Version;
       });
 
 

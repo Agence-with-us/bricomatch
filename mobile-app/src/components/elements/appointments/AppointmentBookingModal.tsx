@@ -41,7 +41,6 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
 
     const { otherProAvailability} = useSelector((state: RootState) => state.availability);
     const { user } = useSelector((state: RootState) => state.auth);
-    console.log("otherProAvailability", otherProAvailability)
 
  
     // Animation du modal
