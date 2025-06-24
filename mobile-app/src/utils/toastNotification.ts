@@ -1,14 +1,26 @@
 import Toast from 'react-native-toast-message';
 import { ApiErrorResponse } from '../types/ApiErrorResponse';
 
-export const showToast = (message: string, type: 'success' | 'error' = 'error') => {
+export const showToast = (message1: string, message2: string, type: 'success' | 'error' = 'error') => {
   Toast.show({
-    type,
-    text1: type === 'error' ? 'Erreur' : 'Succès',
-    text2: message,
+    type: 'custom',
+    text1: message1,
+    text2: message2,
     position: 'top',
-    visibilityTime: 10000,
-
+    visibilityTime: 5000,
+    props: { type },
+    text1Style: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: type === 'success' ? '#15803D' : '#B91C1C',
+      textAlign: 'center',
+    },
+    text2Style: {
+      fontSize: 15,
+      fontWeight: '500',
+      color: '#222',
+      textAlign: 'center',
+    },
   });
 };
 
@@ -19,5 +31,5 @@ export const showToast = (message: string, type: 'success' | 'error' = 'error') 
 export function showApiErrorToast(response: ApiErrorResponse) {
   const errorMessage = response.clientError || "Une erreur inattendue s'est produite";
 
-  showToast(errorMessage,'error');
+  showToast("Erreur", errorMessage, 'error');
 }

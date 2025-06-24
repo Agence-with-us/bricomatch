@@ -37,7 +37,7 @@ axiosInstance.interceptors.response.use(
   (response) => {
     // Si la réponse contient un message de succès, l'afficher avec un toast
     if (response.data && response.data.message) {
-      showToast(response.data.message, 'success');
+      showToast('Succès', response.data.message, 'success');
     }
     return response;
   },
@@ -48,7 +48,7 @@ axiosInstance.interceptors.response.use(
     if (error.response && error.response.data) {
       showApiErrorToast(error.response.data);
     } else {
-      showToast("Une erreur inattendue s'est produite", 'error');
+      showToast("Une erreur inattendue s'est produite", 'Veuillez réessayer plus tard', 'error');
     }
     return Promise.reject(error);
   }

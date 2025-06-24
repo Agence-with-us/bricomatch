@@ -7,6 +7,7 @@ export interface User {
     role: string;
     photoUrl?: string;
     serviceTypeId?: string;
+    description?: string;
   }
   
   // Types pour les actions d'authentification
@@ -90,6 +91,5 @@ export interface User {
     nom?: string;
     prenom?: string;
     photoUrl?: string;
-    role?: string;
-    serviceTypeId?: string;
+    description?: string;
   }

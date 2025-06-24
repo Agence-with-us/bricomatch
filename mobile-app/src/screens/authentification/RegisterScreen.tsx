@@ -8,7 +8,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
-  Alert
+  Alert,
+  Modal
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -16,8 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { RootState } from '../../store/store';
 import { loginWithAppleRequest, loginWithGoogleRequest, registerRequest } from '../../store/authentification/reducer';
 import GoogleSignInComponent from '../../components/elements/auth/GoogleSignIn';
-import AppleIcon from 'react-native-vector-icons/FontAwesome';
-import LoadingModal from '../../components/common/LoadingModal';
+
 import OutlinedTextInput from '../../components/common/OutlinedTextInput';
 import GoBack from '../../components/common/GoBack';
 import Icon from "react-native-vector-icons/Ionicons";
@@ -44,6 +44,7 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
   const [serviceTypeId, setServiceTypeId] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
   const [showServicePicker, setShowServicePicker] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
 
   // États pour les erreurs de validation
@@ -121,25 +122,44 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
   };
 
 
-  const pickImage = async () => {
-    // Demande la permission d'accéder à la galerie
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const handleTakePhoto = async () => {
+    setShowPhotoModal(false);
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission refusée', 'Nous avons besoin de la permission pour accéder à la caméra');
+      return;
+    }
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setPhoto(result.assets[0].uri);
+    }
+  };
 
+  const handlePickFromGallery = async () => {
+    setShowPhotoModal(false);
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission refusée', 'Nous avons besoin de la permission pour accéder à votre galerie');
       return;
     }
-
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.5,
     });
-
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setPhoto(result.assets[0].uri);
     }
+  };
+
+  const pickImage = () => {
+    setShowPhotoModal(true);
   };
 
   const handleGoogleSignInSuccess = (userData: any) => {
@@ -235,6 +255,38 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
                 </View>
               </TouchableOpacity>
               <Text className="text-muted text-sm mt-2">Ajouter une photo</Text>
+
+              {/* Modal pour choisir la source de la photo */}
+              <Modal
+                visible={showPhotoModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowPhotoModal(false)}
+              >
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+                  <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, width: 300, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>Choisir une photo</Text>
+                    <TouchableOpacity
+                      style={{ width: '100%', padding: 12, borderRadius: 8, backgroundColor: '#F3F4F6', marginBottom: 12, alignItems: 'center' }}
+                      onPress={handleTakePhoto}
+                    >
+                      <Text style={{ fontSize: 16 }}>Prendre une photo</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{ width: '100%', padding: 12, borderRadius: 8, backgroundColor: '#F3F4F6', marginBottom: 12, alignItems: 'center' }}
+                      onPress={handlePickFromGallery}
+                    >
+                      <Text style={{ fontSize: 16 }}>Choisir depuis la galerie</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{ width: '100%', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                      onPress={() => setShowPhotoModal(false)}
+                    >
+                      <Text style={{ fontSize: 16, color: '#EF4444' }}>Annuler</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
             </View>
 
             {/* Formulaire */}

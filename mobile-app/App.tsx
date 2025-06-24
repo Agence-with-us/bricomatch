@@ -5,6 +5,7 @@ import store, { persistor } from "./src/store/store";
 import { PersistGate } from "redux-persist/es/integration/react";
 import { SafeAreaView, StyleSheet, ActivityIndicator, View } from "react-native";
 import Toast from "react-native-toast-message";
+import CustomToast from './src/components/common/CustomToast';
 import 'react-native-gesture-handler';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import Constants from 'expo-constants';
@@ -24,7 +25,11 @@ export default function App() {
         <StripeProvider publishableKey={Constants.expoConfig?.extra?.stripePublishableKey}>
           <SafeAreaView style={styles.container}>
             <AppNavigator />
-            <Toast />
+            <Toast
+              config={{
+                custom: (props) => <CustomToast {...props} />,
+              }}
+            />
           </SafeAreaView>
         </StripeProvider>
       </PersistGate>

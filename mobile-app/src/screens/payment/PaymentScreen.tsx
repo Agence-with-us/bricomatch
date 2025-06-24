@@ -72,7 +72,7 @@ export default function PaymentScreen() {
 
     const handlePayment = async () => {
         if (!cardDetails?.complete || !clientSecret) {
-            showToast("Veuillez compléter les informations de votre carte", 'error')
+            showToast("Veuillez compléter les informations de votre carte", 'Veuillez remplir les champs de la carte', 'error')
             return;
         }
         try {
@@ -96,7 +96,7 @@ export default function PaymentScreen() {
 
             if (paymentIntent?.status === 'RequiresCapture') {
                 await axiosInstance.patch(`/appointments/${createdAppointment?.id}/payment/authorize`);
-                showToast("Votre paiement a été autorisé. Il sera débité une fois que le professionnel confirmera votre rendez-vous.", "success");
+                showToast("Succès", "Votre paiement a été autorisé. Il sera débité une fois que le professionnel confirmera votre rendez-vous.", "success");
                 reset('ValidationScreen', {
                     info: {
                         title: "Paiement autorisé",
@@ -107,10 +107,10 @@ export default function PaymentScreen() {
                 });
             }
             else {
-                showToast("Statut de paiement inattendu, Veuillez contacter le support.", "error")
+                showToast("Statut de paiement inattendu", "Veuillez contacter le support.", "error")
             }
         } catch (error: any) {
-            showToast("Erreur lors du paiement:", "error")
+            showToast("Erreur lors du paiement", "Veuillez réessayer plus tard", "error")
         } finally {
             setIsProcessing(false);
         }

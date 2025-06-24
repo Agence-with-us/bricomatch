@@ -43,7 +43,6 @@ const styles = StyleSheet.create({
         backgroundColor: "#EBEDEF",
         borderWidth: 0.5,
         borderColor: "#7E8184",
-        height: 50,
     },
     container: {
         marginVertical: 10,

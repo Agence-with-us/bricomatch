@@ -207,6 +207,7 @@ const AppointmentsScreen = () => {
 
         showToast(
           'Permission refusée pour accéder à la caméra et au microphone',
+          'Veuillez autoriser l\'accès à la caméra et au microphone',
           'error'
         );
         return false;

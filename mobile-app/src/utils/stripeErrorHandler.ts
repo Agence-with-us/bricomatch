@@ -33,6 +33,6 @@ export function getStripeErrorMessage(error: StripeError): string {
         default:
             stripeError = error.message || "Une erreur inconnue est survenue lors du paiement.";
     }
-    showToast(stripeError, "error")
+    showToast("Erreur lors du paiement", stripeError, "error")
     return stripeError
 }

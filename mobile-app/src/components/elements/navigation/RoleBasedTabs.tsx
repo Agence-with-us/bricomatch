@@ -6,7 +6,7 @@ import { RootState } from '../../../store/store';
 import { navigate, getCurrentRoute, addNavigationListener } from '../../../services/navigationService';
 
 // Screens where we want to hide the tab bar
-const HIDDEN_TAB_SCREENS = ['ChatScreen', 'FicheProfessionnel', 'Payment', 'ValidationScreen', "FactureDetailsScreen", "FacturesScreen", "VideoCall", 'Login', 'Register', 'CompleteProfile'];
+const HIDDEN_TAB_SCREENS = ['ChatScreen', 'FicheProfessionnel', 'Payment', 'ValidationScreen', "FactureDetailsScreen", "FacturesScreen", "VideoCall", 'Login', 'Register', 'CompleteProfile' , 'AppLandingScreen'];
 
 // Define role-specific screens
 const PARTICULIER_ONLY_SCREENS = ['HomeSearch', 'FicheProfessionnel', 'Services'];

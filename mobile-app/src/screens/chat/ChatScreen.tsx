@@ -28,13 +28,12 @@ import {
   getDownloadURL
 } from 'firebase/storage';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
-import { format } from 'date-fns';
 import { RootState } from '../../store/store';
 import { Message } from '../../store/chat/types';
 import { useSelector } from 'react-redux';
 import { database, storage } from '../../config/firebase.config';
 import UserInitials from '../../components/elements/users/UserInitials';
-import { formatDateTimeFromTimeStamp, formatFullDateTimeFromTimeStamp } from '../../utils/appointmentUtils';
+import {  formatFullDateTimeFromTimeStamp } from '../../utils/appointmentUtils';
 import GoBack from '../../components/common/GoBack';
 import { showToast } from '../../utils/toastNotification';
 import { UserLocal } from '../../store/users/types';
@@ -163,7 +162,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
       const userChatsSnapshot = await get(userChatsRef);
 
       if (!userChatsSnapshot.exists()) {
-        showToast('Aucun chat trouvé pour l\'utilisateur', 'error')
+        showToast('Aucun chat trouvé pour l\'utilisateur', 'Veuillez d\'abord créer un chat', 'error')
         return null;
       }
 
@@ -188,11 +187,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
           return chatId;
         }
       }
-      showToast('Aucun chat trouvé pour l\'utilisateur', 'error')
+      showToast('Aucun chat trouvé pour l\'utilisateur', 'Veuillez d\'abord créer un chat', 'error')
 
       return null;
     } catch (error) {
-      showToast('Erreur lors de la recherche du chat:', 'error')
+      showToast('Erreur lors de la recherche du chat:', 'Veuillez réessayer plus tard', 'error')
 
       return null;
     }

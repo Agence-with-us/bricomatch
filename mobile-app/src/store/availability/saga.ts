@@ -79,13 +79,13 @@ function* updateConnectedProAvailabilitySaga(action: PayloadAction<Availability>
     yield put(updateConnectedProAvailabilitySuccess(availability));
 
     // Afficher un toast de confirmation
-    yield call(showToast, "Vos disponibilités ont été enregistrées avec succès", "success");
+    yield call(showToast, "Succès", "Vos disponibilités ont été enregistrées avec succès", "success");
   } catch (error: any) {
     console.error("Erreur mise à jour disponibilité:", error);
     yield put(updateConnectedProAvailabilityFailure(error.message || "Erreur lors de la mise à jour des disponibilités"));
 
     // Afficher un toast d'erreur
-    yield call(showToast, "Échec de l'enregistrement des disponibilités", "error");
+    yield call(showToast, "Échec de l'enregistrement des disponibilités", "Veuillez réessayer plus tard", "error");
   }
 }
 

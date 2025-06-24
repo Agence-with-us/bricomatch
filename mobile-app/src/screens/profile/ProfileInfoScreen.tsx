@@ -2,694 +2,409 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  Image,
-  TextInput,
-  ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+  Image,
+  Alert,
+  Modal
 } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
-import { Ionicons } from '@expo/vector-icons';
+import { useDispatch, useSelector } from 'react-redux';
 import * as ImagePicker from 'expo-image-picker';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { firestore, auth } from '../../config/firebase.config';
 import { RootState } from '../../store/store';
-import { showToast } from '../../utils/toastNotification';
+import { updateProfileRequest } from '../../store/authentification/reducer';
+import OutlinedTextInput from '../../components/common/OutlinedTextInput';
+import Icon from "react-native-vector-icons/Ionicons";
+import LogoSpinner from '../../components/common/LogoSpinner';
+import { auth } from '../../config/firebase.config';
 
-const ProfileInfoScreen = ({ navigation }) => {
+const offsetOrangeSplash = require('../../../assets/splash-bg-offset-orange.png');
+
+const ProfileInfoScreen = () => {
   const dispatch = useDispatch();
-  const currentUser = useSelector((state: RootState) => state.auth.user);
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [serviceInfo, setServiceInfo] = useState(null);
+  const { loading, error, user } = useSelector((state: RootState) => state.auth);
+  const { services } = useSelector((state: RootState) => state.services);
 
-  // Informations utilisateur modifiables
-  const [userInfo, setUserInfo] = useState({
-    nom: currentUser?.nom || '',
-    prenom: currentUser?.prenom || '',
-    description: currentUser?.description || '',
-    photoUrl: currentUser?.photoUrl || null,
-  });
+  // États pour les champs du formulaire
+  const [nom, setNom] = useState('');
+  const [prenom, setPrenom] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [serviceTypeId, setServiceTypeId] = useState('');
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [description, setDescription] = useState('');
+  const [descriptionError, setDescriptionError] = useState('');
 
-  // Informations pour le changement de mot de passe
-  const [passwordInfo, setPasswordInfo] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
+  // États pour les erreurs de validation
+  const [nomError, setNomError] = useState('');
+  const [prenomError, setPrenomError] = useState('');
+  const [currentPasswordError, setCurrentPasswordError] = useState('');
+  const [newPasswordError, setNewPasswordError] = useState('');
+  const [confirmNewPasswordError, setConfirmNewPasswordError] = useState('');
 
-  // Déterminer si l'utilisateur peut changer son mot de passe
-  // (uniquement pour les comptes email/password)
-  const canChangePassword = auth.currentUser?.providerData?.[0]?.providerId === 'password';
+  // Vérifier si l'utilisateur s'est connecté avec Google/Apple
+  const isExternalAuth = auth.currentUser?.providerId === 'google' || auth.currentUser?.providerId === 'apple';
 
-  // Charger les informations de service si nécessaire
+  // Initialiser les données du profil
   useEffect(() => {
-    if (currentUser?.serviceTypeId) {
-      loadServiceInfo();
+    if (user) {
+      setNom(user.nom || '');
+      setPrenom(user.prenom || '');
+      setServiceTypeId(user.serviceTypeId || '');
+      setPhoto(user.photoUrl || null);
+      setDescription(user.description || '');
     }
-  }, [currentUser]);
+  }, [user]);
 
-  const loadServiceInfo = async () => {
-    try {
-      const serviceDoc = await getDoc(doc(firestore, 'services', currentUser.serviceTypeId));
-      if (serviceDoc.exists()) {
-        setServiceInfo(serviceDoc.data());
-      }
-    } catch (error) {
-      console.error("Erreur lors du chargement des informations de service:", error);
-    }
-  };
+  // Validation des champs
+  const validateInputs = () => {
+    let isValid = true;
 
-  // Fonction pour choisir une image depuis la galerie
-  const pickImage = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (!permissionResult.granted) {
-        Alert.alert("Permission refusée", "Vous devez autoriser l'accès à votre galerie.");
-        return;
-      }
-      
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const imageUri = result.assets[0].uri;
-        setUserInfo({ ...userInfo, photoUrl: imageUri });
-        
-        // Si en mode édition, uploader immédiatement l'image
-        if (editMode) {
-          uploadImage(imageUri);
-        }
-      }
-    } catch (error) {
-      console.error("Erreur lors de la sélection de l'image:", error);
-      Alert.alert("Erreur", "Impossible de sélectionner l'image.");
+    // Nom validation
+    if (!nom.trim()) {
+      setNomError('Nom est requis');
+      isValid = false;
+    } else {
+      setNomError('');
     }
-  };
 
-  // Fonction pour uploader une image sur Firebase Storage
-  const uploadImage = async (uri) => {
-    if (!uri) return null;
-    
-    setUploading(true);
-    try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      
-      const storage = getStorage();
-      const storageRef = ref(storage, `profilePictures/${currentUser.id}/${Date.now()}`);
-      
-      await uploadBytes(storageRef, blob);
-      const downloadUrl = await getDownloadURL(storageRef);
-      
-      setUploading(false);
-      return downloadUrl;
-    } catch (error) {
-      setUploading(false);
-      console.error("Erreur lors de l'upload de l'image:", error);
-      Alert.alert("Erreur", "Impossible d'uploader l'image.");
-      return null;
+    // Prénom validation
+    if (!prenom.trim()) {
+      setPrenomError('Prénom est requis');
+      isValid = false;
+    } else {
+      setPrenomError('');
     }
-  };
 
-  // Fonction pour sauvegarder les modifications du profil
-  const saveProfile = async () => {
-    setLoading(true);
-    try {
-    //   let photoUrl = userInfo.photoUrl;
-      
-    //   // Si l'URL de la photo commence par 'file://' ou 'content://', c'est une nouvelle image locale
-    //   if (photoUrl && (photoUrl.startsWith('file://') || photoUrl.startsWith('content://'))) {
-    //     photoUrl = await uploadImage(photoUrl);
-    //   }
-      
-    //   const userRef = doc(firestore, 'users', currentUser.id);
-    //   const updatedUserData = {
-    //     nom: userInfo.nom,
-    //     prenom: userInfo.prenom,
-    //     description: userInfo.description,
-    //     ...(photoUrl ? { photoUrl } : {})
-    //   };
-      
-    //   await updateDoc(userRef, updatedUserData);
-      
-    //   // Mettre à jour les informations utilisateur dans Redux
-    //   dispatch(updateUser({
-    //     ...currentUser,
-    //     ...updatedUserData
-    //   }));
-      
-      setEditMode(false);
-      showToast('Votre profil a été mis à jour avec succès.',"success")
-    } catch (error) {
-      console.error("Erreur lors de la sauvegarde du profil:", error);
-      Alert.alert("Erreur", "Impossible de mettre à jour votre profil.");
-    } finally {
-      setLoading(false);
+    // Validation de la description pour les PRO
+    if (user?.role === 'PRO' && description.length > 200) {
+      setDescriptionError('La description ne doit pas dépasser 200 caractères');
+      isValid = false;
+    } else {
+      setDescriptionError('');
     }
-  };
 
-  // Fonction pour changer le mot de passe
-  const changePassword = async () => {
-    // Vérifier si les nouveaux mots de passe correspondent
-    if (passwordInfo.newPassword !== passwordInfo.confirmPassword) {
-      Alert.alert("Erreur", "Les nouveaux mots de passe ne correspondent pas.");
-      return;
-    }
-    
-    // Vérifier la longueur minimale du mot de passe
-    if (passwordInfo.newPassword.length < 6) {
-      Alert.alert("Erreur", "Le mot de passe doit contenir au moins 6 caractères.");
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const user = auth.currentUser;
-      
-      // Réauthentifier l'utilisateur
-      const credential = EmailAuthProvider.credential(
-        user.email,
-        passwordInfo.currentPassword
-      );
-      
-      await reauthenticateWithCredential(user, credential);
-      
-      // Changer le mot de passe
-      await updatePassword(user, passwordInfo.newPassword);
-      
-      // Réinitialiser le formulaire et fermer le modal
-      setPasswordInfo({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-      setShowPasswordModal(false);
-      
-      Alert.alert("Succès", "Votre mot de passe a été modifié avec succès.");
-    } catch (error) {
-      console.error("Erreur lors du changement de mot de passe:", error);
-      
-      if (error.code === 'auth/wrong-password') {
-        Alert.alert("Erreur", "Le mot de passe actuel est incorrect.");
-      } else if (error.code === 'auth/weak-password') {
-        Alert.alert("Erreur", "Le nouveau mot de passe est trop faible.");
+    // Validation du mot de passe si l'utilisateur veut le changer
+    if (!isExternalAuth && (currentPassword || newPassword || confirmNewPassword)) {
+      if (!currentPassword.trim()) {
+        setCurrentPasswordError('Mot de passe actuel est requis');
+        isValid = false;
       } else {
-        Alert.alert("Erreur", "Impossible de modifier votre mot de passe.");
+        setCurrentPasswordError('');
       }
-    } finally {
-      setLoading(false);
+
+      if (!newPassword.trim()) {
+        setNewPasswordError('Nouveau mot de passe est requis');
+        isValid = false;
+      } else if (newPassword.length < 6) {
+        setNewPasswordError('Le mot de passe doit contenir au moins 6 caractères');
+        isValid = false;
+      } else {
+        setNewPasswordError('');
+      }
+
+      if (newPassword !== confirmNewPassword) {
+        setConfirmNewPasswordError('Les mots de passe ne correspondent pas');
+        isValid = false;
+      } else {
+        setConfirmNewPasswordError('');
+      }
+    }
+
+    return isValid;
+  };
+
+  const handleUpdateProfile = () => {
+    if (validateInputs()) {
+      const updateData: any = {
+        nom,
+        prenom,
+        photoUrl: photo || '',
+        serviceTypeId: user?.role === 'PRO' ? serviceTypeId : undefined,
+        description: user?.role === 'PRO' ? description : undefined,
+      };
+
+      // Ajouter les données de mot de passe seulement si ce n'est pas une auth externe
+      if (!isExternalAuth && currentPassword && newPassword) {
+        updateData.currentPassword = currentPassword;
+        updateData.newPassword = newPassword;
+      }
+
+      dispatch(updateProfileRequest(updateData));
     }
   };
 
-  // Rendu du formulaire de changement de mot de passe
-  const renderPasswordModal = () => {
-    if (!showPasswordModal) return null;
-    
-    return (
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Changer le mot de passe</Text>
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Mot de passe actuel"
-            secureTextEntry
-            value={passwordInfo.currentPassword}
-            onChangeText={(text) => setPasswordInfo({ ...passwordInfo, currentPassword: text })}
-          />
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Nouveau mot de passe"
-            secureTextEntry
-            value={passwordInfo.newPassword}
-            onChangeText={(text) => setPasswordInfo({ ...passwordInfo, newPassword: text })}
-          />
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Confirmer le nouveau mot de passe"
-            secureTextEntry
-            value={passwordInfo.confirmPassword}
-            onChangeText={(text) => setPasswordInfo({ ...passwordInfo, confirmPassword: text })}
-          />
-          
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton]}
-              onPress={() => setShowPasswordModal(false)}
-            >
-              <Text style={styles.cancelButtonText}>Annuler</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.modalButton, styles.saveButton]}
-              onPress={changePassword}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.saveButtonText}>Confirmer</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    );
+  const handleTakePhoto = async () => {
+    setShowPhotoModal(false);
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission refusée', 'Nous avons besoin de la permission pour accéder à la caméra');
+      return;
+    }
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setPhoto(result.assets[0].uri);
+    }
   };
+
+  const handlePickFromGallery = async () => {
+    setShowPhotoModal(false);
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission refusée', 'Nous avons besoin de la permission pour accéder à votre galerie');
+      return;
+    }
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setPhoto(result.assets[0].uri);
+    }
+  };
+
+  const pickImage = () => {
+    setShowPhotoModal(true);
+  };
+
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 pt-10 bg-background"
     >
-      <ScrollView style={styles.container}>
-        {/* En-tête du profil */}
-        <View style={styles.header}>
-          <View style={styles.profileImageContainer}>
-            {uploading ? (
-              <View style={styles.loadingOverlay}>
-                <ActivityIndicator size="large" color="#FF5722" />
+      {/* Image de fond */}
+      <Image
+        source={offsetOrangeSplash}
+        className="absolute top-0 right-0 z-0 w-full h-80"
+        resizeMode="cover"
+      />
+
+      <ScrollView className="flex-1">
+        <View className="flex-1 px-6">
+          
+          {/* Contenu principal */}
+          <View className="w-full">
+            <Text className="text-2xl text-muted font-bold mb-6 text-center">Informations du profil</Text>
+
+            {/* Message d'erreur */}
+            {error && (
+              <View className="bg-red-100 p-4 rounded-xl mb-5 border border-red-200">
+                <Text className="text-red-600">{error}</Text>
               </View>
-            ) : (
+            )}
+
+            {/* Photo de profil */}
+            <View className="items-center mb-6">
               <TouchableOpacity
-                style={styles.profileImageWrapper}
-                onPress={editMode ? pickImage : null}
-                disabled={!editMode || uploading}
+                onPress={pickImage}
+                className="relative"
+                activeOpacity={0.8}
               >
-                {userInfo.photoUrl ? (
-                  <Image
-                    source={{ uri: userInfo.photoUrl }}
-                    style={styles.profileImage}
-                  />
+                {photo ? (
+                  <Image source={{ uri: photo }} className="w-24 h-24 rounded-full" />
                 ) : (
-                  <View style={styles.placeholderImage}>
-                    <Text style={styles.placeholderText}>
-                      {userInfo.prenom && userInfo.prenom[0] || userInfo.nom && userInfo.nom[0] || '?'}
+                  <View className="w-24 h-24 rounded-full bg-gray-200 items-center justify-center border border-gray-300">
+                    <Icon name="person-circle-outline" size={48} color="#A0AEC0" />
+                  </View>
+                )}
+                <View className="absolute bottom-0 right-0 bg-secondary w-8 h-8 rounded-full items-center justify-center">
+                  <Icon name="camera" size={16} color="#ffffff" />
+                </View>
+              </TouchableOpacity>
+              <Text className="text-muted text-sm mt-2">Modifier la photo</Text>
+
+              {/* Modal pour choisir la source de la photo */}
+              <Modal
+                visible={showPhotoModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowPhotoModal(false)}
+              >
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+                  <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, width: 300, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>Choisir une photo</Text>
+                    <TouchableOpacity
+                      style={{ width: '100%', padding: 12, borderRadius: 8, backgroundColor: '#F3F4F6', marginBottom: 12, alignItems: 'center' }}
+                      onPress={handleTakePhoto}
+                    >
+                      <Text style={{ fontSize: 16 }}>Prendre une photo</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{ width: '100%', padding: 12, borderRadius: 8, backgroundColor: '#F3F4F6', marginBottom: 12, alignItems: 'center' }}
+                      onPress={handlePickFromGallery}
+                    >
+                      <Text style={{ fontSize: 16 }}>Choisir depuis la galerie</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{ width: '100%', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                      onPress={() => setShowPhotoModal(false)}
+                    >
+                      <Text style={{ fontSize: 16, color: '#EF4444' }}>Annuler</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+            </View>
+
+            {/* Formulaire */}
+            <View className="space-y-4">
+              {/* Email (lecture seule) */}
+              <View>
+                <OutlinedTextInput
+                  label="Email"
+                  value={user?.email || ''}
+                  editable={false}
+                  style={{ backgroundColor: '#F9FAFB' }}
+                  onChangeText={() => {}}
+                />
+                <Text className="text-gray-500 text-xs mt-1 ml-1">L'email ne peut pas être modifié</Text>
+              </View>
+
+              {/* Nom et prénom */}
+              <View className="flex-row space-x-3">
+                <View className="flex-1">
+                  <OutlinedTextInput
+                    label="Nom"
+                    value={nom}
+                    onChangeText={setNom}
+                  />
+                  {nomError ? <Text className="text-red-500 text-sm mt-1 ml-1">{nomError}</Text> : null}
+                </View>
+
+                <View className="flex-1">
+                  <OutlinedTextInput
+                    label="Prénom"
+                    value={prenom}
+                    onChangeText={setPrenom}
+                  />
+                  {prenomError ? <Text className="text-red-500 text-sm mt-1 ml-1">{prenomError}</Text> : null}
+                </View>
+              </View>
+
+              {/* Section mot de passe pour les comptes email/password uniquement */}
+              {!isExternalAuth && (
+                <View className="mt-6">
+                  <Text className="text-lg font-semibold text-muted mb-4">Changer le mot de passe</Text>
+                  
+                  <View className="space-y-4">
+                    <View>
+                      <OutlinedTextInput
+                        label="Mot de passe actuel"
+                        value={currentPassword}
+                        onChangeText={setCurrentPassword}
+                        secureTextEntry
+                      />
+                      {currentPasswordError ? <Text className="text-red-500 text-sm mt-1 ml-1">{currentPasswordError}</Text> : null}
+                    </View>
+
+                    <View>
+                      <OutlinedTextInput
+                        label="Nouveau mot de passe"
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                        secureTextEntry
+                      />
+                      {newPasswordError ? <Text className="text-red-500 text-sm mt-1 ml-1">{newPasswordError}</Text> : null}
+                    </View>
+
+                    <View>
+                      <OutlinedTextInput
+                        label="Confirmer le nouveau mot de passe"
+                        value={confirmNewPassword}
+                        onChangeText={setConfirmNewPassword}
+                        secureTextEntry
+                      />
+                      {confirmNewPasswordError ? <Text className="text-red-500 text-sm mt-1 ml-1">{confirmNewPasswordError}</Text> : null}
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Information sur l'authentification externe */}
+              {isExternalAuth && (
+                <View className="bg-blue-50 p-4 rounded-xl border border-blue-200 mt-4">
+                  <View className="flex-row items-center">
+                    <Icon name="information-circle" size={20} color="#3B82F6" />
+                    <Text className="text-blue-600 ml-2 flex-1">
+                      Compte connecté via {auth.currentUser?.providerId === 'google' ? 'Google' : 'Apple'}. 
+                      Le mot de passe est géré par votre fournisseur d'authentification.
                     </Text>
                   </View>
-                )}
-                {editMode && (
-                  <View style={styles.editImageButton}>
-                    <Ionicons name="camera" size={18} color="#fff" />
-                  </View>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
-          
-          <View style={styles.headerInfo}>
-            {editMode ? (
-              <View style={styles.nameInputContainer}>
-                <TextInput
-                  style={styles.nameInput}
-                  placeholder="Prénom"
-                  value={userInfo.prenom}
-                  onChangeText={(text) => setUserInfo({ ...userInfo, prenom: text })}
-                />
-                <TextInput
-                  style={styles.nameInput}
-                  placeholder="Nom"
-                  value={userInfo.nom}
-                  onChangeText={(text) => setUserInfo({ ...userInfo, nom: text })}
-                />
-              </View>
-            ) : (
-              <Text style={styles.userName}>
-                {userInfo.prenom} {userInfo.nom}
-              </Text>
-            )}
-            <Text style={styles.userRole}>
-              {currentUser?.role === 'PRO' ? 'Professionnel' : 'Client'}
-              {serviceInfo && ` • ${serviceInfo.name}`}
-            </Text>
-          </View>
-        </View>
-        
-        {/* Actions de profil */}
-        <View style={styles.actionBar}>
-          {editMode ? (
-            <>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => {
-                  // Restaurer les informations originales
-                  setUserInfo({
-                    nom: currentUser?.nom || '',
-                    prenom: currentUser?.prenom || '',
-                    description: currentUser?.description || '',
-                    photoUrl: currentUser?.photoUrl || null,
-                  });
-                  setEditMode(false);
-                }}
-              >
-                <Text style={styles.cancelText}>Annuler</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.actionButton, styles.primaryButton]}
-                onPress={saveProfile}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Enregistrer</Text>
-                )}
-              </TouchableOpacity>
-            </>
-          ) : (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.primaryButton]}
-              onPress={() => setEditMode(true)}
-            >
-              <Ionicons name="pencil" size={18} color="#fff" style={styles.buttonIcon} />
-              <Text style={styles.primaryButtonText}>Modifier le profil</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        
-        {/* Informations du profil */}
-        <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>Informations personnelles</Text>
-          
-          <View style={styles.infoItem}>
-            <View style={styles.infoLabel}>
-              <Ionicons name="mail-outline" size={20} color="#666" />
-              <Text style={styles.labelText}>Email</Text>
-            </View>
-            <Text style={styles.infoValue}>{currentUser?.email}</Text>
-          </View>
-          
-          <View style={styles.infoItem}>
-            <View style={styles.infoLabel}>
-              <Ionicons name="create-outline" size={20} color="#666" />
-              <Text style={styles.labelText}>Description</Text>
-            </View>
-            {editMode ? (
-              <TextInput
-                style={styles.descriptionInput}
-                placeholder="Ajoutez une description..."
-                multiline
-                numberOfLines={4}
-                value={userInfo.description}
-                onChangeText={(text) => setUserInfo({ ...userInfo, description: text })}
-              />
-            ) : (
-              <Text style={styles.infoValue}>
-                {userInfo.description || "Aucune description"}
-              </Text>
-            )}
-          </View>
-          
-          {canChangePassword && (
-            <TouchableOpacity
-              style={styles.passwordButton}
-              onPress={() => setShowPasswordModal(true)}
-            >
-              <Ionicons name="lock-closed-outline" size={20} color="#FF5722" />
-              <Text style={styles.passwordButtonText}>Changer le mot de passe</Text>
-            </TouchableOpacity>
-          )}
-          
-          {currentUser?.role === 'PRO' && serviceInfo && (
-            <View style={styles.serviceSection}>
-              <Text style={styles.sectionTitle}>Informations professionnelles</Text>
-              
-              <View style={styles.infoItem}>
-                <View style={styles.infoLabel}>
-                  <Ionicons name="briefcase-outline" size={20} color="#666" />
-                  <Text style={styles.labelText}>Service</Text>
                 </View>
-                <Text style={styles.infoValue}>{serviceInfo.name}</Text>
-              </View>
-              
-              {serviceInfo.description && (
-                <View style={styles.infoItem}>
-                  <View style={styles.infoLabel}>
-                    <Ionicons name="information-circle-outline" size={20} color="#666" />
-                    <Text style={styles.labelText}>Description du service</Text>
+              )}
+
+              {/* Sélection du service pour les professionnels */}
+              {user?.role === 'PRO' && (
+                <View className="mt-6">
+                  <Text className="text-lg font-semibold text-muted mb-4">Informations professionnelles</Text>
+                  <View className="bg-white border border-gray-200 rounded-lg p-4 flex-row items-center space-x-3 shadow-sm">
+                    <Icon name="briefcase-outline" size={22} color="#FF5722" />
+                    <Text className="text-base text-gray-800 font-semibold">
+                      {serviceTypeId
+                        ? (services.find(s => s.id === serviceTypeId)?.name || 'Service inconnu')
+                        : 'Aucun service associé'}
+                    </Text>
                   </View>
-                  <Text style={styles.infoValue}>{serviceInfo.description}</Text>
+                  {/* Champ description pour les PRO */}
+                  <View className="mt-4">
+                    <OutlinedTextInput
+                      label="Description (optionnelle)"
+                      value={description}
+                      onChangeText={setDescription}
+                      multiline
+                      numberOfLines={4}
+                      maxLength={200}
+                      placeholder="Décrivez brièvement votre activité (200 caractères max)"
+                    />
+                    <Text className="text-gray-500 text-xs mt-1 ml-1 text-right">
+                      {description.length}/200
+                    </Text>
+                    {descriptionError ? <Text className="text-red-500 text-sm mt-1 ml-1">{descriptionError}</Text> : null}
+                  </View>
                 </View>
               )}
             </View>
-          )}
+
+            {/* Bouton de mise à jour */}
+            <TouchableOpacity
+              onPress={handleUpdateProfile}
+              className={`rounded-full bg-secondary w-full items-center justify-center h-14 mt-8 ${loading ? 'opacity-90' : ''}`}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <Text className="text-accent font-bold text-base">Mettre à jour le profil</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Espacement en bas */}
+            <View className="h-8" />
+          </View>
         </View>
+
+        {/* Modal de chargement */}
+        <LogoSpinner
+          visible={loading}
+          message="Mise à jour du profil..."
+          rotationDuration={1500}
+        />
       </ScrollView>
-      
-      {/* Modal pour le changement de mot de passe */}
-      {renderPasswordModal()}
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f8f8',
-  },
-  header: {
-    backgroundColor: '#fff',
-    paddingTop: 24,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  profileImageContainer: {
-    marginRight: 16,
-  },
-  profileImageWrapper: {
-    position: 'relative',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    overflow: 'hidden',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholderImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#e0e0e0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#757575',
-  },
-  editImageButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    left: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingVertical: 4,
-    alignItems: 'center',
-  },
-  loadingOverlay: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  userRole: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  nameInputContainer: {
-    flexDirection: 'column',
-  },
-  nameInput: {
-    fontSize: 16,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  actionBar: {
-    flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  actionButton: {
-    flex: 1,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 4,
-    flexDirection: 'row',
-  },
-  primaryButton: {
-    backgroundColor: '#FF5722',
-  },
-  buttonIcon: {
-    marginRight: 8,
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  cancelText: {
-    color: '#666',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  infoSection: {
-    backgroundColor: '#fff',
-    marginTop: 16,
-    padding: 16,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#eee',
-  },
-  serviceSection: {
-    marginTop: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  infoItem: {
-    marginBottom: 16,
-  },
-  infoLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  labelText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-    marginLeft: 8,
-  },
-  infoValue: {
-    fontSize: 16,
-    color: '#333',
-    lineHeight: 22,
-  },
-  descriptionInput: {
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 4,
-    fontSize: 16,
-    color: '#333',
-    lineHeight: 22,
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  passwordButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 8,
-  },
-  passwordButtonText: {
-    color: '#FF5722',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 20,
-    width: '90%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  input: {
-    backgroundColor: '#f5f5f5',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 4,
-    marginBottom: 12,
-    fontSize: 16,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 4,
-    marginHorizontal: 8,
-  },
-  saveButton: {
-    backgroundColor: '#FF5722',
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  cancelButton: {
-    backgroundColor: '#e0e0e0',
-  },
-  cancelButtonText: {
-    color: '#333',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-});
 
 export default ProfileInfoScreen;

@@ -98,7 +98,7 @@ const ConnectedUserAvailabilityScreen: React.FC = () => {
   const handleSave = async () => {
     // Vérifier si l'utilisateur est un professionnel autorisé
     if (!user || user.role !== UserRole.PRO) {
-      showToast("Vous n'êtes pas autorisé à modifier les disponibilités", 'error');
+      showToast("Vous n'êtes pas autorisé à modifier les disponibilités", 'Veuillez vous connecter en tant que professionnel', 'error');
       return;
     }
 
@@ -108,6 +108,7 @@ const ConnectedUserAvailabilityScreen: React.FC = () => {
         if (!validateTimeRanges(availabilities, day)) {
           showToast(
             `Une ou plusieurs plages horaires de ${day} ne sont pas correctement formatées`,
+            'Veuillez vérifier les plages horaires',
             'error'
           );
           return;
@@ -116,6 +117,7 @@ const ConnectedUserAvailabilityScreen: React.FC = () => {
         if (checkOverlappingRanges(availabilities, day)) {
           showToast(
             `Une ou plusieurs plages horaires de ${day} se chevauchent`,
+            'Veuillez vérifier les plages horaires',
             'error'
           );
           return;

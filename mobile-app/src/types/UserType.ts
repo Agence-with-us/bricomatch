@@ -6,4 +6,5 @@ export interface User {
   role: string;
   photoUrl?: string;
   serviceTypeId?: string;
+  description?: string;
 }

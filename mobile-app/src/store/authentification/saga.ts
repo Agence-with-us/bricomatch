@@ -15,7 +15,8 @@ import { doc, setDoc, serverTimestamp, getDoc, updateDoc } from 'firebase/firest
 import {
   ref,
   getDownloadURL,
-  uploadBytes
+  uploadBytes,
+  deleteObject
 } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -56,6 +57,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { UserRole } from '../users/types';
 import axiosInstance from '../../config/axiosInstance';
 import NotificationService from '../../services/notificationService';
+import { showToast } from '../../utils/toastNotification';
 
 // Fonction pour convertir une image locale en Blob
 const createBlobFromUri = async (uri: string): Promise<Blob> => {
@@ -89,6 +91,18 @@ const uploadImage = async (uri: string, userId: string): Promise<string | null> 
     return null;
   }
 };
+
+// Fonction helper pour supprimer une image du storage
+function* deleteImage(imageUrl: string): SagaIterator {
+  try {
+    // Extraire le chemin de l'image depuis l'URL
+    const imageRef = ref(storage, imageUrl);
+    yield call(deleteObject, imageRef);
+  } catch (error) {
+    console.error('Erreur lors de la suppression de l\'image:', error);
+    throw error;
+  }
+}
 
 // Fonction utilitaire pour enregistrer les données utilisateur localement
 function* storeUserDataLocally(userData: User): SagaIterator {
@@ -234,7 +248,7 @@ function* registerSaga(action: PayloadAction<RegisterRequestPayload>): SagaItera
       if (role === 'PRO') {
         yield call(axiosInstance.post, `/users/create-stripe-connect`);
       }
-     
+
 
 
 
@@ -547,7 +561,7 @@ function* loginWithAppleSaga(action: PayloadAction<any>): SagaIterator {
 // Saga pour compléter le profil après connexion sociale
 function* completeProfileSaga(action: PayloadAction<CompleteProfileRequestPayload>): SagaIterator {
   try {
-   
+
     const userData = action.payload;
     const userId = userData.id;
 
@@ -597,23 +611,16 @@ function* completeProfileSaga(action: PayloadAction<CompleteProfileRequestPayloa
   }
 }
 
-// Saga pour la mise à jour du profil
 function* updateProfileSaga(action: PayloadAction<UpdateProfileRequestPayload>): SagaIterator {
   try {
-    const { nom, prenom, photoUrl, role, serviceTypeId } = action.payload;
+    const { nom, prenom, photoUrl, description } = action.payload;
 
     // Récupérer l'ID utilisateur actuel
     const { user } = yield select((state: RootState) => state.auth);
 
     if (!user || !user.id) {
-      //yield put(updateProfileFailure('Utilisateur non connecté'));
+      yield put(updateProfileFailure('Utilisateur non connecté'));
       return;
-    }
-
-    // Télécharger la nouvelle image de profil si fournie
-    let finalPhotoUrl = photoUrl;
-    if (photoUrl && !photoUrl.startsWith('https://')) {
-      finalPhotoUrl = yield call(uploadImage, photoUrl, user.id);
     }
 
     // Préparer les données à mettre à jour
@@ -623,32 +630,52 @@ function* updateProfileSaga(action: PayloadAction<UpdateProfileRequestPayload>):
 
     if (nom) updateData.nom = nom;
     if (prenom) updateData.prenom = prenom;
-    if (finalPhotoUrl) updateData.photoUrl = finalPhotoUrl;
-    if (role) updateData.role = role;
-    if (serviceTypeId && role === 'PRO') updateData.serviceTypeId = serviceTypeId;
+    if (description) updateData.description = description;
+
+    // Gérer la mise à jour de la photo de profil
+    if (photoUrl && !photoUrl.startsWith('https://')) {
+      // Supprimer l'ancienne photo si elle existe
+      if (user.photoUrl && user.photoUrl.startsWith('https://')) {
+        try {
+          yield call(deleteImage, user.photoUrl);
+        } catch (deleteError) {
+          console.warn('Erreur lors de la suppression de l\'ancienne photo:', deleteError);
+          // Ne pas arrêter le processus si la suppression échoue
+        }
+      }
+
+      // Télécharger la nouvelle image
+      const finalPhotoUrl = yield call(uploadImage, photoUrl, user.id);
+      updateData.photoUrl = finalPhotoUrl;
+    } else if (photoUrl && photoUrl.startsWith('https://')) {
+      // Si c'est déjà une URL valide, l'utiliser directement
+      updateData.photoUrl = photoUrl;
+    }
 
     // Mettre à jour les données dans Firestore
-    yield call(updateDoc, doc(firestore, 'users', user.id), updateData);
+    yield call(updateDoc, doc(firestore, 'users', user.id), updateData, { merge: true });
 
     // Récupérer les données complètes mises à jour
     const userDoc = yield call(getDoc, doc(firestore, 'users', user.id));
     const updatedUserData = userDoc.data() as User;
 
-    // Mettre à jour les données locales
-    yield call(storeUserDataLocally, {
-      id: user.id,
-      ...updatedUserData
-    });
+    // Créer l'objet utilisateur mis à jour (correction du problème d'ID dupliqué)
+    const updatedUser = {
+      ...updatedUserData,
+      id: user.id // L'ID vient en dernier pour éviter l'écrasement
+    };
 
-    yield put(updateProfileSuccess({
-      id: user.id,
-      ...updatedUserData
-    }));
+    // Mettre à jour les données locales
+    yield call(storeUserDataLocally, updatedUser);
+
+    yield put(updateProfileSuccess(updatedUser));
+    showToast('Profil mis à jour avec succès', 'Vous pouvez maintenant fermer cette page', 'success');
   } catch (error: any) {
     console.error('Erreur mise à jour profil:', error);
     yield put(updateProfileFailure('Erreur lors de la mise à jour du profil: ' + error.message));
   }
 }
+
 
 // Saga pour la déconnexion
 function* logoutSaga() {
@@ -689,7 +716,7 @@ function* checkAuthStatusSaga(): SagaIterator {
     if (userData) {
       yield put(loginSuccess(userData));
 
-    
+
     } else {
       // Si pas de données locales, vérifier l'état d'authentification Firebase
       const currentUser = auth.currentUser;
