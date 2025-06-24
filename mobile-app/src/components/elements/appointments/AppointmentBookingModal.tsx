@@ -20,6 +20,8 @@ interface AppointmentBookingModalProps {
     onClose: () => void;
     professionalIdInfo: UserLocal;
     appointments?: any[];
+    initialShowCalendar?: boolean;
+    initialDate?: string;
 }
 
 const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
@@ -27,16 +29,19 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
     onClose,
     professionalIdInfo,
     appointments = [],
+    initialShowCalendar = true,
+    initialDate = '',
 }) => {
     // États pour gérer les sélections
     const [selectedDuration, setSelectedDuration] = useState<30 | 60>(30);
-    const [selectedDate, setSelectedDate] = useState<string>('');
+    const [selectedDate, setSelectedDate] = useState<string>(initialDate);
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
-    const [showCalendar, setShowCalendar] = useState<boolean>(true);
+    const [showCalendar, setShowCalendar] = useState<boolean>(initialShowCalendar);
     const [availableTimeSlots, setAvailableTimeSlots] = useState<{ start: string, end: string, isAvailable: boolean, duration: number }[]>([]);
 
-    const { otherProAvailability, isLoading, error } = useSelector((state: RootState) => state.availability);
+    const { otherProAvailability} = useSelector((state: RootState) => state.availability);
     const { user } = useSelector((state: RootState) => state.auth);
+    console.log("otherProAvailability", otherProAvailability)
 
  
     // Animation du modal
@@ -90,6 +95,14 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
     // Gérer l'ouverture du modal quand il devient visible
     useEffect(() => {
         if (visible) {
+            // Si on veut ouvrir directement sur les créneaux d'une date
+            if (!initialShowCalendar && initialDate) {
+                setSelectedDate(initialDate);
+                setShowCalendar(false);
+            } else {
+                setShowCalendar(true);
+                setSelectedDate(initialDate || '');
+            }
             openModal();
         }
     }, [visible]);

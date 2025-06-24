@@ -20,11 +20,6 @@ type ProfileOptionType = {
 export const ProfileScreen: React.FC = () => {
   const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch();
-const getToken = async () => {
-    return await auth.currentUser?.getIdToken();
-};
-
-getToken().then(token => console.log(token)).catch(error => console.error("Erreur :", error));
 
 
   const handleLogout = () => {

@@ -19,6 +19,7 @@ import { showToast } from '../../utils/toastNotification';
 // Saga pour récupérer la disponibilité d'un professionnel (connecté ou autre)
 function* fetchAvailabilitySaga(action: PayloadAction<{ userId: string; type: 'connected' | 'other' }>): SagaIterator {
   const { userId, type } = action.payload;
+  console.log("fetchAvailabilitySaga", userId, type);
 
   try {
     // Récupération du document de disponibilité depuis Firestore
@@ -30,6 +31,7 @@ function* fetchAvailabilitySaga(action: PayloadAction<{ userId: string; type: 'c
         id: availabilitySnapshot.id,
         ...availabilitySnapshot.data()
       } as Availability;
+      console.log("availabilityData", availabilityData)
 
       // Dispatch du succès avec les données et le type (connecté ou autre)
       yield put(fetchAvailabilitySuccess({
@@ -37,8 +39,14 @@ function* fetchAvailabilitySaga(action: PayloadAction<{ userId: string; type: 'c
         type
       }));
     } else {
+      // {"Mercredi": [{"end": "17:00", "start": "09:00"}], "id": "9IBZyVrIc2YYTWjqwMKbHJsuw1k2"}
       // Document non trouvé
-      yield put(fetchAvailabilityFailure(`Aucune disponibilité trouvée pour ce professionnel`));
+      yield put(fetchAvailabilitySuccess({
+        availability: {
+          id: availabilitySnapshot.id,
+        },
+        type
+      }));
     }
   } catch (error: any) {
     console.error('Erreur récupération disponibilité:', error);
@@ -90,26 +98,6 @@ function* updateConnectedProAvailabilitySaga(action: PayloadAction<Availability>
 }
 
 
-// Fonction utilitaire pour récupérer la disponibilité d'un professionnel par son ID
-export function* getAvailabilityDetails(userId: string): Generator<any, Availability | null, any> {
-  try {
-    const availabilityRef = doc(firestore, 'availabilities', userId);
-    const availabilitySnapshot = yield call(getDoc, availabilityRef);
-
-    if (availabilitySnapshot.exists()) {
-      return {
-        id: availabilitySnapshot.id,
-        ...availabilitySnapshot.data()
-      } as Availability;
-    } else {
-      console.warn(`Disponibilité pour l'utilisateur ${userId} non trouvée`);
-      return null;
-    }
-  } catch (error) {
-    console.error(`Erreur lors de la récupération de la disponibilité ${userId}:`, error);
-    return null;
-  }
-}
 
 // Watcher saga pour surveiller les actions de disponibilité
 export function* watchAvailabilityActions() {

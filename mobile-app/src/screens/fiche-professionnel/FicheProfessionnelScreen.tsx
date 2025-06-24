@@ -21,16 +21,36 @@ export const FicheProfessionnelScreen: React.FC = () => {
     if (!route?.params?.professionnel) return null;
     const [selectedProffesionnel, setSelectedProfessionnel] = useState<UserLocal>(route.params.professionnel)
     const [openBookModalAppointment, setOpenBookModalAppointment] = useState<boolean>(false)
+    const [openDirectToSlots, setOpenDirectToSlots] = useState<boolean>(false);
+    const [defaultDate, setDefaultDate] = useState<string>('');
     const { user } = useSelector((state: RootState) => state.auth);
     
     const handleBookModalAppointment = () => {
         if (!user) {
             navigate('Login');
         } else {
+            // Date du jour au format yyyy-mm-dd
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${yyyy}-${mm}-${dd}`;
+            setDefaultDate(todayStr);
+            setOpenDirectToSlots(true);
             setOpenBookModalAppointment(true);
         }
     }
 
+    // Handler pour la sélection de date dans le calendrier principal
+    const handleDateSelect = (date: string) => {
+        if (!user) {
+            navigate('Login');
+        } else {
+            setDefaultDate(date);
+            setOpenDirectToSlots(true);
+            setOpenBookModalAppointment(true);
+        }
+    }
 
     return (
         <View className="flex-1 pt-9 bg-background" key={`${selectedProffesionnel.id}`}>
@@ -76,15 +96,14 @@ export const FicheProfessionnelScreen: React.FC = () => {
                         <Text className="text-muted text-base font-normal">
                             {selectedProffesionnel.description
                                 ? selectedProffesionnel.description
-                                : "Aucune description disponible pour le moment. N’hésitez pas à le contacter pour en savoir plus sur ses services !"}
+                                : "Aucune description disponible pour le moment. N'hésitez pas à le contacter pour en savoir plus sur ses services !"}
                         </Text>
                     </View>
                 </View>
                 <View className="mt-10 flex-1">
                     <Text className="text-muted-disabled text-[15px] font-bold mb-2">DISPONIBILITÉS</Text>
-
                 </View>
-                <AvailabilityCalendar professionalId={selectedProffesionnel.id} />
+                <AvailabilityCalendar professionalId={selectedProffesionnel.id} onDateSelect={handleDateSelect} />
             </ScrollView>
             <View className="absolute bottom-0 left-0 right-0 flex-row items-center p-4 py-5 bg-accent  border-t border-t-gray-300">
                 <Text className="text-muted font-semibold text-base flex-1">À partir de {30} €/ht</Text>
@@ -94,10 +113,14 @@ export const FicheProfessionnelScreen: React.FC = () => {
             </View>
             <AppointmentBookingModal
                 visible={openBookModalAppointment}
-                onClose={() => setOpenBookModalAppointment(false)}
+                onClose={() => {
+                  setOpenBookModalAppointment(false);
+                  setOpenDirectToSlots(false);
+                }}
                 professionalIdInfo={selectedProffesionnel}
+                initialShowCalendar={!openDirectToSlots ? true : false}
+                initialDate={defaultDate}
             />
-            {/* <AppointmentModal isVisible={openBookAppointment} onClose={() => setOpenBookAppointment(false)} /> */}
         </View>
     );
 };

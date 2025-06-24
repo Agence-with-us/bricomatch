@@ -45,11 +45,19 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     const [currentMonthView, setCurrentMonthView] = useState<string>(format(new Date(), 'yyyy-MM')); // Nouveau state pour suivre le mois affiché
     const { otherProAvailability, isLoading, error } = useSelector((state: RootState) => state.availability);
 
+    // Helper pour savoir si le pro a des dispos
+    const hasDispos = otherProAvailability &&
+      Object.keys(otherProAvailability)
+        .filter(key => key !== 'id')
+        .some(day => Array.isArray((otherProAvailability as any)[day]) && (otherProAvailability as any)[day].length > 0);
 
     // Au chargement, récupérer les disponibilités du professionnel
     useEffect(() => {
-        dispatch(fetchAvailabilityRequest({ userId: professionalId, type: 'other' }));
-    }, [dispatch]);
+        // Ne fetch que si les dispos ne sont pas déjà celles du bon pro
+        if (!otherProAvailability || typeof (otherProAvailability as any).id !== 'string' || (otherProAvailability as any).id !== professionalId) {
+            dispatch(fetchAvailabilityRequest({ userId: professionalId, type: 'other' }));
+        }
+    }, [dispatch, professionalId, otherProAvailability]);
 
     // Mettre à jour les jours marqués lorsque les disponibilités changent ou lorsque le mois affiché change
     useEffect(() => {
@@ -150,44 +158,57 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         );
     }
 
-    return (
-        <View className=''>
-            <Calendar
-                current={selectedDate}
-                onDayPress={handleDateSelect}
-                onMonthChange={handleMonthChange}
-                markedDates={{
-                    ...markedDates,
-                    [selectedDate]: {
-                        ...markedDates[selectedDate],
-                        selected: true,
-                        selectedColor: '#f95200',
-                    }
-                }}
-                firstDay={1} // Commencer par lundi
-                minDate={format(new Date(), 'yyyy-MM-dd')} // Désactiver les dates passées
-                theme={{
-                    todayTextColor: '#f95200',
-
-                }}
-                renderArrow={(direction: any) => (
-                    <View className="border border-muted/10 rounded-full p-2">
-                        <Icon
-                            name={`chevron-${direction === 'left' ? 'back' : 'forward'}`}
-                            color="rgba(0,0,0,0.6)"
-                            size={15}
-                        />
-                    </View>
-                )}
-                className="bg-white rounded-md "
-            />
-            <LogoSpinner
-                visible={isLoading}
-                message="Disponibilitées en cours..."
-                rotationDuration={1500}
-
-            />
+    // Affichage conditionnel selon la présence de dispos
+    if (otherProAvailability && otherProAvailability.id && !hasDispos) {
+      return (
+        <View className="flex-1 bg-[#fff8f3] rounded-2xl p-2 m-2 shadow-lg shadow-[#f95200]/10 justify-center items-center" style={{elevation: 4}}>
+          <Icon name="alert-circle-outline" size={40} color="#f95200" style={{ marginBottom: 12 }} />
+          <Text className="text-[#f95200] font-semibold text-lg text-center mb-2">
+            Ce professionnel n'a pas encore renseigné ses disponibilités.
+          </Text>
+          <Text className="text-[#888] text-base text-center">
+            Merci de réessayer plus tard ou de choisir un autre professionnel.
+          </Text>
         </View>
+      );
+    }
+
+    return (
+      <View className=''>
+        <Calendar
+          current={selectedDate}
+          onDayPress={handleDateSelect}
+          onMonthChange={handleMonthChange}
+          markedDates={{
+            ...markedDates,
+            [selectedDate]: {
+              ...markedDates[selectedDate],
+              selected: true,
+              selectedColor: '#f95200',
+            }
+          }}
+          firstDay={1} // Commencer par lundi
+          minDate={format(new Date(), 'yyyy-MM-dd')} // Désactiver les dates passées
+          theme={{
+            todayTextColor: '#f95200',
+          }}
+          renderArrow={(direction: any) => (
+            <View className="border border-muted/10 rounded-full p-2">
+              <Icon
+                name={`chevron-${direction === 'left' ? 'back' : 'forward'}`}
+                color="rgba(0,0,0,0.6)"
+                size={15}
+              />
+            </View>
+          )}
+          className="bg-white rounded-md "
+        />
+        <LogoSpinner
+          visible={isLoading}
+          message="Disponibilitées en cours..."
+          rotationDuration={1500}
+        />
+      </View>
     );
 };
 

@@ -213,7 +213,7 @@ const AppNavigator = () => {
                                 name="ProfileInfoScreen"
                                 children={() => (
                                     <ProtectedRoute>
-                                        <ProfileInfoScreen navigation={undefined} />
+                                        <ProfileInfoScreen  />
                                     </ProtectedRoute>
                                 )}
                                 options={getScreenOptions('ProfileInfoScreen')}

@@ -110,8 +110,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
   }, [currentUser, otherUser, providedChatId]);
 
   useEffect(() => {
-    console.log(currentUser)
-    console.log("ffffffffffffffff")
+    if (!currentUser || !currentChatId) return;
 
 
     // Mark user as "read up to this point" when entering chat
