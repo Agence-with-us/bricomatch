@@ -28,7 +28,7 @@ export default {
     },
     android: {
       package: 'com.bricomatch.app',
-      googleServicesFile: './google-services.json',
+      googleServicesFile: './src/fichier-sensibles/google-services.json',
       versionCode: 1,
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
