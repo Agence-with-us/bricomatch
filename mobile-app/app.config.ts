@@ -3,7 +3,7 @@ import 'dotenv/config';
 export default {
   expo: {
     name: 'Bricomatch',
-    slug: 'bricomatch',
+    slug: 'Bricomatch',
     version: '1.0.2',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -17,6 +17,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.bricomatch.app',
+      googleServicesFile: './src/fichier-sensibles/GoogleService-Info.plist',
       bitcode: false,
       infoPlist: {
         NSCameraUsageDescription: "Cette application a besoin d'accéder à votre caméra pour les appels vidéo",
@@ -62,7 +63,7 @@ export default {
       firebaseAppId: process.env.FIREBASE_APP_ID,
       firebaseDatabaseURL: process.env.FIREBASE_DATABASE_URL,
       googleSignInWebClientId: process.env.GOOGLE_SIGN_IN_WEB_CLIENT_ID,
-      googleSignInIOSUrlSchema: process.env.GOOGLE_SIGN_IN_IOS_URL_SCHEMA,
+      googleSignInIOSUrlSchema: "com.googleusercontent.apps.312593652235-uc1oku08gc6jcotklkin18a6j68c9omv",
       stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
       eas: {
         projectId: process.env.EAS_PROJECT_ID
@@ -74,7 +75,7 @@ export default {
       [
         "@react-native-google-signin/google-signin",
         {
-          iosUrlScheme: process.env.GOOGLE_SIGN_IN_IOS_URL_SCHEMA
+          iosUrlScheme: "com.googleusercontent.apps.312593652235-uc1oku08gc6jcotklkin18a6j68c9omv"
         }
       ],
       [
