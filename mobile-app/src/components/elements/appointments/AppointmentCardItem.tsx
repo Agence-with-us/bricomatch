@@ -133,7 +133,7 @@ const AppointmentCardItem: React.FC<AppointmentCardItemProps> = ({
         }
 
         // Action ANNULER
-        if (!isPastAppointment) {
+        if (!isPastAppointment && !appointmentWithOtherUser.isOngoing) {
             if (status === AppointmentStatus.PAYMENT_AUTHORIZED) {
                 actions.canCancel = true; // Les deux peuvent annuler
             } else if (status === AppointmentStatus.CONFIRMED) {

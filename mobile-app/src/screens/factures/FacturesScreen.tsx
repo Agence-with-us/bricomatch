@@ -24,6 +24,7 @@ interface Invoice {
   platformFee: number;
   userId: string;
   userRole: string;
+  status: string;
 }
 
 // Composant principal
@@ -34,8 +35,8 @@ const FacturesScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [appointmentsCache, setAppointmentsCache] = useState({});
-  const [userInfoCache, setUserInfoCache] = useState({});
+  const [appointmentsCache, setAppointmentsCache] = useState<Record<string, Appointment>>({});
+  const [userInfoCache, setUserInfoCache] = useState<Record<string, any>>({});
 
   const [factures, setFactures] = useState<Array<{
     invoice: Invoice;
@@ -70,6 +71,9 @@ const FacturesScreen = () => {
           ...docSnap.data()
         } as Invoice;
 
+        // Filtrer sur le statut COMPLETED
+        if (invoice.status !== 'COMPLETED') continue;
+
         // Récupérer les informations du rendez-vous associé si pas déjà en cache
         if (invoice.appointmentId && !appointmentsCache[invoice.appointmentId]) {
           try {
@@ -86,7 +90,7 @@ const FacturesScreen = () => {
               }));
 
               // Récupérer les informations de l'autre utilisateur (pro ou client)
-              const otherUserId = user.role === UserRole.PRO ? appointmentData.clientId : appointmentData.proId;
+              const otherUserId = user && user.role === UserRole.PRO ? appointmentData.clientId : appointmentData.proId;
 
               if (otherUserId && !userInfoCache[otherUserId]) {
                 try {
@@ -146,15 +150,15 @@ const FacturesScreen = () => {
 
         if (appointment) {
           // Déterminer l'ID de l'autre utilisateur
-          const otherUserId = user.role === UserRole.PRO ? appointment.clientId : appointment.proId;
+          const otherUserId = user && user.role === UserRole.PRO ? appointment.clientId : appointment.proId;
 
           // Récupérer les informations de l'autre utilisateur depuis le cache
-          otherUser = userInfoCache[otherUserId] || null;
+          otherUser = otherUserId ? userInfoCache[otherUserId] || null : null;
 
           // Récupérer les informations du service
           if (otherUser && otherUser.serviceInfo) {
             service = otherUser.serviceInfo;
-          } else if (user.role === UserRole.PARTICULIER && user.serviceTypeId) {
+          } else if (user && user.role === UserRole.PARTICULIER && user.serviceTypeId) {
             service = services.find(s => s.id === user.serviceTypeId) || null;
           }
         }

@@ -1,21 +1,37 @@
 // services/notificationService.ts
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
+import { Appointment, UserRole } from '../types';
 
-// Types pour les notifications
-interface NotificationData {
+// Types pour la notification générique
+interface GenericNotificationData {
   title: string;
   body: string;
-  data?: { [key: string]: string };
-  imageUrl?: string;
+  type: string;
+  action?: string;
+  additionalData?: Record<string, any>;
 }
 
-interface NotificationOptions {
-  priority?: 'high' | 'normal';
-  sound?: string;
-  badge?: number;
+interface GenericNotificationOptions {
+  priority?: 'high' | 'normal' | 'low';
+  sound?: string | 'default';
   clickAction?: string;
-  tag?: string;
+  badge?: number;
+  icon?: string;
+  image?: string;
+  ttl?: number; // Time to live en secondes
+}
+
+// Types pour les notifications d'annulation
+interface NotificationConfig {
+  clientNotification?: {
+    title: string;
+    body: string;
+  };
+  proNotification?: {
+    title: string;
+    body: string;
+  };
 }
 
 class ServerNotificationPushService {
@@ -31,7 +47,7 @@ class ServerNotificationPushService {
   async getUserTokens(userId: string): Promise<string[]> {
     try {
       const userTokenDoc = await this.db.collection('fcmTokens').doc(userId).get();
-      
+
       if (!userTokenDoc.exists) {
         console.log(`Aucun token trouvé pour l'utilisateur: ${userId}`);
         return [];
@@ -39,7 +55,7 @@ class ServerNotificationPushService {
 
       const userData = userTokenDoc.data();
       const tokens = userData?.tokens || [];
-      
+
       // Extraire seulement les tokens actifs
       const activeTokens = tokens
         .filter((tokenData: any) => tokenData.isActive)
@@ -57,13 +73,13 @@ class ServerNotificationPushService {
    * Envoie une notification à un utilisateur spécifique
    */
   async sendNotificationToUser(
-    userId: string, 
-    notification: NotificationData, 
-    options: NotificationOptions = {}
+    userId: string,
+    notification: GenericNotificationData,
+    options: GenericNotificationOptions = {}
   ): Promise<boolean> {
     try {
       const tokens = await this.getUserTokens(userId);
-      
+
       if (tokens.length === 0) {
         console.log(`Aucun token disponible pour l'utilisateur: ${userId}`);
         return false;
@@ -80,9 +96,9 @@ class ServerNotificationPushService {
    * Envoie une notification à plusieurs tokens
    */
   async sendNotificationToTokens(
-    tokens: string[], 
-    notification: NotificationData, 
-    options: NotificationOptions = {}
+    tokens: string[],
+    notification: GenericNotificationData,
+    options: GenericNotificationOptions = {}
   ): Promise<boolean> {
     try {
       if (tokens.length === 0) {
@@ -94,15 +110,13 @@ class ServerNotificationPushService {
         notification: {
           title: notification.title,
           body: notification.body,
-          imageUrl: notification.imageUrl,
         },
-        data: notification.data || {},
+        data: notification.additionalData || {},
         android: {
           priority: options.priority || 'high' as const,
           notification: {
             sound: options.sound || 'default',
             clickAction: options.clickAction,
-            tag: options.tag,
           },
         },
         apns: {
@@ -117,10 +131,10 @@ class ServerNotificationPushService {
       };
 
       console.log(`Envoi de notification à ${tokens.length} token(s)...`);
-      const response = await admin.messaging().sendEachForMulticast(message);
+      const response = await admin.messaging().sendEachForMulticast(message as any);
 
       console.log(`Notifications envoyées: ${response.successCount}/${tokens.length}`);
-      
+
       // Nettoyer les tokens invalides
       if (response.failureCount > 0) {
         await this.handleFailedTokens(tokens, response.responses);
@@ -139,13 +153,13 @@ class ServerNotificationPushService {
   private async handleFailedTokens(tokens: string[], responses: any[]) {
     try {
       const invalidTokens: string[] = [];
-      
+
       responses.forEach((response, index) => {
         if (!response.success && response.error) {
           const errorCode = response.error.code;
           // Codes d'erreur indiquant que le token est invalide
-          if (errorCode === 'messaging/invalid-registration-token' || 
-              errorCode === 'messaging/registration-token-not-registered') {
+          if (errorCode === 'messaging/invalid-registration-token' ||
+            errorCode === 'messaging/registration-token-not-registered') {
             invalidTokens.push(tokens[index]);
           }
         }
@@ -166,7 +180,7 @@ class ServerNotificationPushService {
   private async removeInvalidTokens(invalidTokens: string[]) {
     try {
       const batch = this.db.batch();
-      
+
       // Chercher tous les documents qui contiennent ces tokens
       const tokensCollection = this.db.collection('fcmTokens');
       const snapshot = await tokensCollection.get();
@@ -174,9 +188,9 @@ class ServerNotificationPushService {
       snapshot.forEach((doc) => {
         const userData = doc.data();
         const tokens = userData.tokens || [];
-        
+
         // Filtrer les tokens invalides
-        const validTokens = tokens.filter((tokenData: any) => 
+        const validTokens = tokens.filter((tokenData: any) =>
           !invalidTokens.includes(tokenData.token)
         );
 
@@ -193,128 +207,227 @@ class ServerNotificationPushService {
   }
 
   /**
-   * Envoie une notification de rendez-vous confirmé
+   * Envoie une notification générique à un utilisateur
    */
-  async sendAppointmentConfirmationNotification(
-    clientId: string, 
-    appointmentDetails: {
-      proName: string;
-      date: string;
-      time: string;
-    }
-  ): Promise<boolean> {
-    const notification: NotificationData = {
-      title: '✅ Rendez-vous confirmé !',
-      body: `Votre rendez-vous avec ${appointmentDetails.proName}, le ${appointmentDetails.date} à ${appointmentDetails.time} est confirmé.`,
-      data: {
-        type: 'appointment_confirmed',
-        action: 'view_appointment',
-      },
-    };
-
-    const options: NotificationOptions = {
-      priority: 'high',
-      sound: 'default',
-      clickAction: 'APPOINTMENT_CONFIRMED',
-    };
-
-    return await this.sendNotificationToUser(clientId, notification, options);
-  }
-
-  /**
-   * Envoie une notification de nouveau message de chat
-   */
-  async sendChatMessageNotification(
-    recipientId: string,
-    senderName: string,
-    message: string,
-    chatId: string
-  ): Promise<boolean> {
-    const notification: NotificationData = {
-      title: `💬 Nouveau message de ${senderName}`,
-      body: message.length > 100 ? message.substring(0, 100) + '...' : message,
-      data: {
-        type: 'chat_message',
-        chatId: chatId,
-        senderId: recipientId,
-        action: 'open_chat',
-      },
-    };
-
-    const options: NotificationOptions = {
-      priority: 'high',
-      sound: 'default',
-      clickAction: 'CHAT_MESSAGE',
-      tag: `chat_${chatId}`,
-    };
-
-    return await this.sendNotificationToUser(recipientId, notification, options);
-  }
-
-  /**
-   * Envoie une notification de nouveau rendez-vous (pour les pros)
-   */
-  async sendNewAppointmentNotification(
-    proId: string,
-    appointmentDetails: {
-      clientName: string;
-      date: string;
-      time: string;
-      appointmentId: string;
-    }
-  ): Promise<boolean> {
-    const notification: NotificationData = {
-      title: '📅 Nouveau rendez-vous !',
-      body: `${appointmentDetails.clientName} a réservé un RDV le ${appointmentDetails.date} à ${appointmentDetails.time}`,
-      data: {
-        type: 'new_appointment',
-        appointmentId: appointmentDetails.appointmentId,
-        action: 'view_appointment',
-      },
-    };
-
-    const options: NotificationOptions = {
-      priority: 'high',
-      sound: 'default',
-      clickAction: 'NEW_APPOINTMENT',
-      tag: `new_appointment_${appointmentDetails.appointmentId}`,
-    };
-
-    return await this.sendNotificationToUser(proId, notification, options);
-  }
-
-  /**
-   * Envoie une notification de rappel de rendez-vous
-   */
-  async sendAppointmentReminderNotification(
+  async sendGenericNotification(
     userId: string,
-    appointmentDetails: {
-      otherPartyName: string;
-      service: string;
-      date: string;
-      time: string;
-      appointmentId: string;
-      isForPro: boolean;
-    }
+    notificationData: GenericNotificationData,
+    options: GenericNotificationOptions = {}
   ): Promise<boolean> {
-    const notification: NotificationData = {
-      title: '⏰ Rappel de rendez-vous',
-      body: `N'oubliez pas votre rendez-vous ${appointmentDetails.isForPro ? 'avec' : 'chez'} ${appointmentDetails.otherPartyName} pour ${appointmentDetails.service} demain à ${appointmentDetails.time}`,
-      data: {
-        type: 'appointment_reminder',
-        appointmentId: appointmentDetails.appointmentId,
-        action: 'view_appointment',
+    const notification: GenericNotificationData = {
+      title: notificationData.title,
+      body: notificationData.body,
+      type: notificationData.type,
+      action: notificationData.action || 'default_action',
+      additionalData: notificationData.additionalData,
+    };
+
+    const notificationOptions: GenericNotificationOptions = {
+      priority: options.priority || 'high',
+      sound: options.sound || 'default',
+      clickAction: options.clickAction || 'DEFAULT_ACTION',
+      badge: options.badge,
+      icon: options.icon,
+      image: options.image,
+      ttl: 30, // 30 secondes
+    };
+
+    return await this.sendNotificationToUser(userId, notification, notificationOptions);
+  }
+
+  /**
+   * Service centralisé pour les notifications d'annulation
+   */
+  async sendCancellationNotifications(
+    appointment: Appointment,
+    config: NotificationConfig
+  ): Promise<void> {
+    const baseNotificationData = {
+      type: "appointment_cancelled" as const,
+      action: "view_appointment" as const,
+      additionalData: {
+        appointmentId: appointment.id,
       },
     };
 
-    const options: NotificationOptions = {
-      priority: 'normal',
-      sound: 'default',
-      clickAction: 'APPOINTMENT_REMINDER',
-      tag: `reminder_${appointmentDetails.appointmentId}`,
-    };
+    const promises: Promise<boolean>[] = [];
 
-    return await this.sendNotificationToUser(userId, notification, options);
+    // Notification au client
+    if (config.clientNotification) {
+      promises.push(
+        this.sendGenericNotification(appointment.clientId, {
+          ...config.clientNotification,
+          ...baseNotificationData,
+        })
+      );
+    }
+
+    // Notification au professionnel
+    if (config.proNotification) {
+      promises.push(
+        this.sendGenericNotification(appointment.proId, {
+          ...config.proNotification,
+          ...baseNotificationData,
+        })
+      );
+    }
+
+    await Promise.all(promises);
+  }
+
+  /**
+   * Générateur de messages de notification
+   */
+  getNotificationMessages(
+    appointment: Appointment,
+    scenario: 'payment_authorized' | 'client_partial' | 'client_full' | 'pro_cancellation',
+    initiatedBy?: UserRole
+  ): NotificationConfig | undefined {
+    const appointmentDate = appointment.dateTime.toDate().toLocaleDateString('fr-FR');
+    const appointmentTime = appointment.timeSlot;
+
+    switch (scenario) {
+      case 'payment_authorized':
+        if (initiatedBy === UserRole.PRO) {
+          return {
+            clientNotification: {
+              title: "❌ Rendez‑vous refusé",
+              body: `Votre rendez‑vous du ${appointmentDate} à ${appointmentTime} a été refusé par le professionnel, vous ne serez pas débité.`,
+            }
+          };
+        } else if (initiatedBy === UserRole.PARTICULIER) {
+          return {
+            proNotification: {
+              title: "❌ Rendez‑vous refusé",
+              body: `Le client a annulé son rendez‑vous du ${appointmentDate} à ${appointmentTime}.`,
+            }
+          };
+        }
+        break;
+
+      case 'client_partial':
+        return {
+          clientNotification: {
+            title: "❌ Rendez‑vous annulé",
+            body: `Votre rendez‑vous du ${appointmentDate} à ${appointmentTime} a été annulé avec succès, une frais de 10€ a été conservé. Vous recevrez un remboursement du reste dans les jours à venir.`,
+          },
+          proNotification: {
+            title: "❌ Rendez‑vous annulé",
+            body: `Le rendez‑vous du ${appointmentDate} à ${appointmentTime} a été annulé par le client.`,
+          }
+        };
+
+      case 'client_full':
+        return {
+          clientNotification: {
+            title: "❌ Rendez‑vous annulé",
+            body: `Votre rendez‑vous du ${appointmentDate} à ${appointmentTime} a été annulé avec succès, vous recevrez un remboursement total dans les jours à venir.`,
+          },
+          proNotification: {
+            title: "❌ Rendez‑vous annulé",
+            body: `Le rendez‑vous du ${appointmentDate} à ${appointmentTime} a été annulé par le client.`,
+          }
+        };
+
+      case 'pro_cancellation':
+        return {
+          clientNotification: {
+            title: "❌ Rendez‑vous annulé",
+            body: `Votre rendez‑vous du ${appointmentDate} à ${appointmentTime} a été annulé par le professionnel, vous recevrez un remboursement total dans les jours à venir.`,
+          },
+          proNotification: {
+            title: "❌ Rendez‑vous annulé",
+            body: `Votre rendez‑vous du ${appointmentDate} à ${appointmentTime} a été annulé avec succès.`,
+          }
+        };
+
+      default:
+        return undefined;
+    }
+  }
+
+  /**
+   * Méthode utilitaire pour gérer l'annulation complète avec notification
+   */
+  async handleAppointmentCancellation(
+    appointment: Appointment,
+    scenario: 'payment_authorized' | 'client_partial' | 'client_full' | 'pro_cancellation',
+    initiatedBy?: UserRole
+  ): Promise<void> {
+    try {
+      const notificationConfig = this.getNotificationMessages(appointment, scenario, initiatedBy);
+      if (notificationConfig) {
+        await this.sendCancellationNotifications(appointment, notificationConfig);
+      }
+      console.log(`Notifications d'annulation envoyées pour le rendez-vous ${appointment.id}`);
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi des notifications d\'annulation:', error);
+    }
+  }
+
+  /**
+   * Notification 15 min avant le RDV
+   */
+  async sendAppointmentReminder15min(userId: string, proName: string, date: string, time: string) {
+    return this.sendNotificationToUser(userId, {
+      title: '⏰ RDV dans 15 min',
+      body: `Votre rdv avec ${proName} est dans 15 min, prévenez votre pro ou annulez si vous n'êtes plus disponible.`,
+      type: 'appointment_reminder_15min',
+      action: 'reminder_15min',
+      additionalData: { date, time }
+    });
+  }
+
+  /**
+   * Notification 5 min avant le RDV
+   */
+  async sendAppointmentReminder5min(userId: string, proName: string, date: string, time: string) {
+    return this.sendNotificationToUser(userId, {
+      title: '⏰ RDV dans 5 min',
+      body: `Votre rdv va commencer, avez-vous rempli le brief ?`,
+      type: 'appointment_reminder_5min',
+      action: 'reminder_5min',
+      additionalData: { date, time }
+    });
+  }
+
+  /**
+   * Notification 2 min avant le RDV
+   */
+  async sendAppointmentReminder2min(userId: string, proName: string, date: string, time: string) {
+    return this.sendNotificationToUser(userId, {
+      title: '🚀 Connectez-vous à la visio !',
+      body: `Connectez-vous à votre visio dans 2min !`,
+      type: 'appointment_reminder_2min',
+      action: 'reminder_2min',
+      additionalData: { date, time }
+    });
+  }
+
+  /**
+   * Notification 5 min avant la fin du RDV
+   */
+  async sendAppointmentEndingSoon(userId: string, proName: string, date: string, time: string) {
+    return this.sendNotificationToUser(userId, {
+      title: '⏳ Fin de visio dans 5 min',
+      body: 'Votre visio se termine dans 5 min, reprenez rdv si vous avez besoin de plus de temps !',
+      type: 'appointment_ending_soon',
+      action: 'ending_soon',
+      additionalData: { date, time }
+    });
+  }
+
+  /**
+   * Notification 2 jours avant le RDV (pour client et pro)
+   */
+  async sendAppointment2DaysReminder(userId: string, otherName: string, service: string, date: string, time: string, isForPro: boolean) {
+    return this.sendNotificationToUser(userId, {
+      title: '⏰ RDV dans 2 jours',
+      body: `N'oubliez pas votre rdv avec ${otherName} (${service}) dans 2 jours, pensez à annuler si vous n'êtes plus disponible.`,
+      type: 'appointment_2days_reminder',
+      action: 'reminder_2days',
+      additionalData: { date, time, isForPro: isForPro ? '1' : '0' }
+    });
   }
 }
 

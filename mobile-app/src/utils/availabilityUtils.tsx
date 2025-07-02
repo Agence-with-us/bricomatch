@@ -146,7 +146,15 @@ export const timeToMinutes = (time: string): number => {
 
 
 
-// Vérifier si un créneau est déjà pris par un rendez-vous
+/**
+ * Vérifie si un créneau est déjà pris par un rendez-vous.
+ * 
+ * @param date - La date du créneau
+ * @param startTime - L'heure de début du créneau
+ * @param endTime - L'heure de fin du créneau
+ * @param appointments - Les rendez-vous existants
+ * @returns true si le créneau est déjà pris par un rendez-vous, sinon false
+ */
 export const isSlotBooked = (date: string, startTime: string, endTime: string, appointments: Appointment[]) => {
   // Convertir la date et l'heure du créneau en objets Date
   const slotStart = parse(`${date} ${startTime}`, 'yyyy-MM-dd HH:mm', new Date());
@@ -175,79 +183,99 @@ export const isSlotBooked = (date: string, startTime: string, endTime: string, a
   });
 };
 
-// Générer tous les créneaux horaires pour une journée en tenant compte des disponibilités et des rendez-vous
+/**
+ * Génère les créneaux disponibles pour une date donnée.
+ * 
+ * @param dayAvailability - Les disponibilités pour un jour donné
+ * @param selectedDate - La date sélectionnée
+ * @param appointments - Les rendez-vous existants
+ * @returns Les créneaux disponibles
+ */
 export const generateTimeSlots = (dayAvailability: TimeRange[], selectedDate: string, appointments: Appointment[]) => {
+  // Création d'un tableau pour stocker les créneaux disponibles
   const slots: { start: string, end: string, isAvailable: boolean, duration: number }[] = [];
 
+  // Vérification si la date sélectionnée est aujourd'hui
+  const isToday = selectedDate === format(new Date(), 'yyyy-MM-dd');
+  const now = new Date();
+
+  // Parcours des plages horaires de disponibilité
   dayAvailability.forEach(range => {
     const startTime = parse(range.start, 'HH:mm', new Date());
     const endTime = parse(range.end, 'HH:mm', new Date());
 
-    // On génère d'abord tous les créneaux de 30 minutes
+    // Créneaux de 30 minutes (durée sélectionnée)
     const slotDuration30 = 30;
     let currentSlotStart = startTime;
 
+    // Parcours des créneaux de 30 minutes
     while (addMinutes(currentSlotStart, slotDuration30) <= endTime) {
       const slotEnd = addMinutes(currentSlotStart, slotDuration30);
-
-      // Format des heures pour l'affichage
       const formattedStart = format(currentSlotStart, 'HH:mm');
       const formattedEnd = format(slotEnd, 'HH:mm');
 
-      // Vérifier si ce créneau est déjà pris par un rendez-vous
-      const isSlotAvailable = !isSlotBooked(selectedDate, formattedStart, formattedEnd, appointments);
+      // Filtrer les slots passés si c'est aujourd'hui (pour ne pas afficher les créneaux passés)
+      if (isToday) {
+        const slotDateTime = parse(`${selectedDate} ${formattedStart}`, 'yyyy-MM-dd HH:mm', new Date());
+        if (slotDateTime < now) {
+          currentSlotStart = slotEnd;
+          continue;
+        }
+      }
 
+      // Vérification si le créneau n'est pas déjà réservé
+      const isSlotAvailable = !isSlotBooked(selectedDate, formattedStart, formattedEnd, appointments);
       slots.push({
         start: formattedStart,
         end: formattedEnd,
         isAvailable: isSlotAvailable,
         duration: slotDuration30
       });
-
+      // Avancer de 30 minutes
       currentSlotStart = slotEnd;
     }
 
-    // Maintenant, générer des créneaux de 1h (60 minutes)
+    // Créneaux de 1h (60 minutes)
     const slotDuration60 = 60;
     currentSlotStart = startTime;
-
     while (addMinutes(currentSlotStart, slotDuration60) <= endTime) {
       const slotEnd = addMinutes(currentSlotStart, slotDuration60);
-
-      // Format des heures pour l'affichage
       const formattedStart = format(currentSlotStart, 'HH:mm');
       const formattedEnd = format(slotEnd, 'HH:mm');
+
+      // Filtrer les slots passés si c'est aujourd'hui (pour ne pas afficher les créneaux passés)
+      if (isToday) {
+        const slotDateTime = parse(`${selectedDate} ${formattedStart}`, 'yyyy-MM-dd HH:mm', new Date());
+        if (slotDateTime < now) {
+          currentSlotStart = addMinutes(currentSlotStart, slotDuration30); // avancer de 30 minutes
+          continue;
+        }
+      }
 
       // Pour un créneau de 1h, il faut vérifier que les deux créneaux de 30 minutes sont disponibles
       const slot1Start = formattedStart;
       const slot1End = format(addMinutes(currentSlotStart, 30), 'HH:mm');
       const slot2Start = slot1End;
       const slot2End = formattedEnd;
-
+      // Vérification si le créneau n'est pas déjà réservé
       const isSlot1Available = !isSlotBooked(selectedDate, slot1Start, slot1End, appointments);
       const isSlot2Available = !isSlotBooked(selectedDate, slot2Start, slot2End, appointments);
-
-      // Le créneau d'une heure est disponible seulement si les deux créneaux de 30 min sont disponibles
+      // Vérification si les deux créneaux sont disponibles
       const isSlotAvailable = isSlot1Available && isSlot2Available;
-
       slots.push({
         start: formattedStart,
         end: formattedEnd,
         isAvailable: isSlotAvailable,
         duration: slotDuration60
       });
-
       currentSlotStart = addMinutes(currentSlotStart, slotDuration30); // Avancer de 30 minutes
     }
   });
 
-  // Trier les créneaux par heure de début et durée
+  // Trier les créneaux par heure de début et durée (pour afficher les créneaux les plus proches en premier)
   return slots.sort((a, b) => {
-    // D'abord comparer les heures de début
     const startComparison = a.start.localeCompare(b.start);
     if (startComparison !== 0) return startComparison;
-
-    // Si les heures de début sont identiques, trier par durée (croissante)
     return a.duration - b.duration;
   });
 };

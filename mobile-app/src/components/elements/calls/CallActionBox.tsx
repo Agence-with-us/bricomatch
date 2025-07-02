@@ -49,7 +49,7 @@ interface Props {
     isCameraOn: boolean;
     isMicMuted: boolean;
     isSpeakerMuted: boolean;
-    elapsedTime: string;
+    timeLeft: number;
 }
 
 const CallActionBox = ({
@@ -62,7 +62,7 @@ const CallActionBox = ({
     isCameraOn,
     isMicMuted,
     isSpeakerMuted,
-    elapsedTime
+    timeLeft
 }: Props) => {
     const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
 
@@ -72,6 +72,18 @@ const CallActionBox = ({
 
     const onCloseChat = () => {
         setIsChatVisible(false);
+    };
+
+    const formatTime = (seconds: number) => {
+        const min = Math.floor(seconds / 60);
+        const sec = seconds % 60;
+        return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    };
+
+    const getTimerColor = () => {
+        if (timeLeft <= 60) return '#FF3D3D'; // Rouge < 1 min
+        if (timeLeft <= 300) return '#FF9500'; // Orange < 5 min
+        return '#34C759'; // Vert sinon
     };
 
     return (
@@ -93,13 +105,15 @@ const CallActionBox = ({
                     {/* Espace entre les groupes */}
                     <View className="relative">
                         <Icon name="chatbubble-outline" color="#555555" size={27} />
-                        {/* Point noir (ou de couleur 'secondary') superposé sur l'icône */}
-                        <View className="absolute rounded-full bg-secondary h-[9] w-[9] top-0 right-0" />
+                       
                     </View>
                     {/* Groupe pour la durée et son point à côté */}
                     <View className="ml-4  flex-row items-center">
-                        <Text>{elapsedTime}</Text>
-                        <View className="rounded-full bg-online h-[6] w-[6] ml-1" />
+                        <View className="flex-row items-center rounded-full p-2" style={{ backgroundColor: getTimerColor() }}>
+                            <Text style={{ color: '#fff' }}>{formatTime(timeLeft)}</Text>
+                            <View className="rounded-full bg-online h-[6] w-[6] ml-1" />
+
+                        </View>
                     </View>
                 </View>
 

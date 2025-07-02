@@ -13,6 +13,7 @@ export interface Appointment {
     montantHT?: number;
     montantTotal?: number;// Total amount including VAT
     stripePaymentIntentId?: string;
+    createdAt?: string | Date;
 }
 
 export interface AppointmentWithOtherUserInfo {
@@ -38,5 +39,7 @@ export enum AppointmentStatus {
     COMPLETED = 'COMPLETED',                     // RDV terminé (visio > 10min)
     CANCELLED_BY_CLIENT = 'CANCELLED_BY_CLIENT', // Annulé par le particulier
     CANCELLED_BY_PRO = 'CANCELLED_BY_PRO',       // Annulé par le PRO
-    CANCELLED_BY_PRO_PENDING = 'CANCELLED_BY_PRO_PENDING',       // envoyé au admin pour confirmé
+    CANCELLED_BY_PRO_PENDING = 'CANCELLED_BY_PRO_PENDING',       // envoyé au admin pour confirmé,
+    PENDING_PAYOUT = 'PENDING_PAYOUT',                     // En attente de paiement
+    PAID_OUT = 'PAID_OUT',                                 // Paiement capturé
 }

@@ -39,6 +39,7 @@ import { showToast } from '../../utils/toastNotification';
 import { UserLocal } from '../../store/users/types';
 import { RootStackParamList } from '../../types/RootStackParamList';
 import LogoSpinner from '../../components/common/LogoSpinner';
+import axiosInstance from '../../config/axiosInstance';
 
 type ChatScreenProps = {
   chat?: { chatId: string; otherUserInfo: UserLocal };
@@ -285,6 +286,20 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
       },
       updatedAt: timestamp
     });
+
+    // Envoi de la notification push au destinataire
+    if (otherUser && otherUser.id !== currentUser.id) {
+      try {
+        await axiosInstance.post('/notifications/chat-message', {
+          recipientId: otherUser.id,
+          senderName: `${currentUser.prenom} ${currentUser.nom}`,
+          message: messageData.text || 'Image',
+          chatId: currentChatId
+        });
+      } catch (error) {
+        console.error('Erreur lors de l\'envoi de la notification push:', error);
+      }
+    }
 
     // Clear the input
     setNewMessage('');

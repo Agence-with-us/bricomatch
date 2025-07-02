@@ -1,6 +1,7 @@
 // src/services/cronService.ts
 import cron from 'node-cron';
 import { processEvaluations, processPendingPayouts } from './evaluationProcessingService';
+import { processExpiredPaymentInitiatedAppointments, processAppointmentReminders } from './appointmentService';
 
 /**
  * Service de gestion des tâches cron
@@ -25,6 +26,9 @@ export class CronService {
     public startAllJobs(): void {
         this.startEvaluationProcessingJob();
         //this.startPayoutProcessingJob();
+        this.startExpiredPaymentInitiatedCleanupJob();
+        this.startAppointmentRemindersJob();
+        this.startDailyRemindersFileJob();
         console.log('🚀 Tous les jobs cron ont été démarrés');
     }
 
@@ -75,6 +79,58 @@ export class CronService {
 
         this.payoutJobStarted = true;
         console.log('💰 Job de paiement programmé toutes les heures');
+    }
+
+    /**
+     * Job cron pour supprimer les RDV PAYMENT_INITIATED expirés (créés il y a plus de 10 min)
+     * S'exécute toutes les 10 minutes
+     */
+    public startExpiredPaymentInitiatedCleanupJob(): void {
+        cron.schedule('*/10 * * * *', async () => {
+            console.log('🕒 Nettoyage des RDV PAYMENT_INITIATED expirés (>10min)');
+            try {
+                await processExpiredPaymentInitiatedAppointments();
+                console.log('✅ Nettoyage des RDV PAYMENT_INITIATED expirés terminé');
+            } catch (error) {
+                console.error('❌ Erreur lors du nettoyage des RDV PAYMENT_INITIATED expirés:', error);
+            }
+        });
+        console.log('🕒 Job de nettoyage PAYMENT_INITIATED programmé toutes les 10 minutes');
+    }
+
+    /**
+     * Job cron pour envoyer les notifications de rappel RDV (15min, 5min, 2min avant)
+     * S'exécute toutes les minutes
+     */
+    public startAppointmentRemindersJob(): void {
+        cron.schedule('* * * * *', async () => {
+            console.log('🔔 Vérification des RDV à rappeler (15min, 5min, 2min)');
+            try {
+                await processAppointmentReminders();
+                console.log('✅ Notifications de rappel envoyées');
+            } catch (error) {
+                console.error('❌ Erreur lors de l\'envoi des notifications de rappel:', error);
+            }
+        });
+        console.log('🔔 Job de rappel RDV programmé chaque minute');
+    }
+
+    /**
+     * Job cron pour générer le fichier reminders.json à 05h00 chaque jour
+     */
+    public startDailyRemindersFileJob(): void {
+        // Tous les jours à 05h00
+        cron.schedule('0 5 * * *', async () => {
+            console.log('📝 Génération du fichier reminders.json à 05h00');
+            try {
+                const { generateDailyRemindersFile } = await import('./appointmentService');
+                await generateDailyRemindersFile();
+                console.log('✅ reminders.json généré avec succès');
+            } catch (error) {
+                console.error('❌ Erreur lors de la génération de reminders.json:', error);
+            }
+        });
+        console.log('📝 Job de génération reminders.json programmé pour 05h00 chaque jour');
     }
 
 }

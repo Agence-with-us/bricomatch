@@ -7,6 +7,9 @@ import { Appointment, AppointmentStatus, UserRole } from '../types';
 import { ClientError } from '../helpers/ClientError';
 import { capturePaymentIntent } from './paymentService';
 import { handleConfirmedCancellation, handlePaymentAuthorizedCancellation, validateUserAccess } from '../helpers/AppointmentHelpers';
+import notificationPushService from './notificationPushService';
+import { getUserById } from './userService';
+import { setReminders, ReminderEntry, addReminder, removeReminder, getReminders } from './reminderFileService';
 
 
 
@@ -36,6 +39,7 @@ export const createAppointment = async (
       montantTotal: appointmentData.montantTotal!,
       montantHT: appointmentData.montantHT!,
       stripePaymentIntentId: appointmentData.stripePaymentIntentId,
+      createdAt: admin.firestore.Timestamp.now(),
     };
 
     await docRef.set(newAppointment);
@@ -102,6 +106,18 @@ export const confirmAppointment = async (
 
     await appointmentRef.update(updatedAppointment);
 
+    // Ajout au fichier reminders.json
+    await addReminder({
+      id: appointment.id!,
+      proId: appointment.proId,
+      clientId: appointment.clientId,
+      dateTime: appointment.dateTime,
+      duration: appointment.duration,
+      timeSlot: appointment.timeSlot,
+      status: AppointmentStatus.CONFIRMED,
+      roomId: roomId || '',
+    });
+
     // Invalide les caches liés pour rafraîchir les données
     // await Promise.all([
     //   invalidateUserAppointmentsCache(appointment.proId),
@@ -136,22 +152,31 @@ export const cancelAppointmentAdvancedService = async (
   try {
     const appointment = await getAppointmentById(appointmentId);
     console.log("appointment", appointment);
+
+    // Vérifier que l'utilisateur est bien le propriétaire du rendez-vous
     validateUserAccess(appointment, userId, initiatedBy);
 
-    // Switch sur le statut pour déterminer l'action
+    let updatedAppointment: Appointment | null = null;
     switch (appointment.status) {
+
+      // Si le rendez-vous est PAYMENT_AUTHORIZED, on annule (Pas de paiement capturé donc pas de remboursement)
       case AppointmentStatus.PAYMENT_AUTHORIZED:
-        return await handlePaymentAuthorizedCancellation(appointment, initiatedBy);
-
+        updatedAppointment = await handlePaymentAuthorizedCancellation(appointment, initiatedBy);
+        break;
       case AppointmentStatus.CONFIRMED:
-        return await handleConfirmedCancellation(appointment, initiatedBy);
-
+        updatedAppointment = await handleConfirmedCancellation(appointment, initiatedBy);
+        break;
       default:
         throw new ClientError(
           `Impossible d'annuler un rendez‑vous avec le statut : ${appointment.status}`,
           400
         );
     }
+    // Si le rendez-vous n'est plus confirmé, le retirer du fichier
+    if (updatedAppointment && updatedAppointment.status !== AppointmentStatus.CONFIRMED) {
+      await removeReminder(appointmentId);
+    }
+    return updatedAppointment;
   } catch (error) {
     console.error("Erreur lors de l'annulation du rendez‑vous :", error);
     throw error;
@@ -165,23 +190,23 @@ export const updateAppointmentStatus = async (
 ): Promise<Appointment> => {
   const appointmentRef = appointmentsCollection.doc(appointment.id!);
   const updatedAt = admin.firestore.Timestamp.now();
-  
+
   // Mise à jour du statut
   await appointmentRef.update({
     status: newStatus,
     updatedAt
   });
-  
+
   // Création de la notification
   await notificationsCollection.add({
     message: notificationMessage,
     datetime: updatedAt,
     appointmentId: appointment.id,
   });
-  
+
   // Invalidation du cache
   // await invalidateCache(`appointment:${appointment.id}`);
-  
+
   return {
     ...appointment,
     status: newStatus,
@@ -290,7 +315,7 @@ export const evaluerAppointmentService = async (
 
     // Récupérer l'historique des évaluations existant
     const currentEvaluations = appointment.evaluationHistory || [];
-    
+
     // Ajouter la nouvelle évaluation à l'historique
     const updatedEvaluations = [...currentEvaluations, evaluation];
 
@@ -321,8 +346,183 @@ export const evaluerAppointmentService = async (
   }
 };
 
-// Helper function to invalidate user appointments cache
-const invalidateUserAppointmentsCache = async (userId: string): Promise<void> => {
-  // await invalidateCache(`user:${userId}:appointments:pro`);
-  // await invalidateCache(`user:${userId}:appointments:client`);
+
+
+/**
+ * Supprime tous les rendez-vous PAYMENT_INITIATED créés il y a plus de 10 minutes.
+ */
+export const processExpiredPaymentInitiatedAppointments = async (): Promise<void> => {
+  const firestore = getFirestore();
+  const now = admin.firestore.Timestamp.now();
+  const tenMinutesAgo = admin.firestore.Timestamp.fromMillis(now.toMillis() - 10 * 60 * 1000);
+
+  // Chercher tous les rendez-vous PAYMENT_INITIATED créés il y a plus de 10 min
+  const snapshot = await appointmentsCollection
+    .where('status', '==', AppointmentStatus.PAYMENT_INITIATED)
+    .where('createdAt', '<=', tenMinutesAgo)
+    .get();
+
+  if (snapshot.empty) {
+    console.log('Aucun rendez-vous PAYMENT_INITIATED expiré à supprimer.');
+    return;
+  }
+
+  const batch = firestore.batch();
+  snapshot.docs.forEach(doc => {
+    batch.delete(doc.ref);
+  });
+  await batch.commit();
+  console.log(`${snapshot.size} rendez-vous PAYMENT_INITIATED expirés supprimés.`);
+};
+
+/**
+ * Envoie les notifications de rappel RDV (15min, 5min, 2min avant) aux clients.
+ * Désormais, lit les rendez-vous depuis reminders.json
+ */
+export const processAppointmentReminders = async (): Promise<void> => {
+  const now = admin.firestore.Timestamp.now();
+  const nowDate = now.toDate();
+
+  // Lire les rendez-vous à rappeler depuis reminders.json
+  const reminders = await getReminders();
+
+  for (const appointment of reminders) {
+    if (!appointment.dateTime || !appointment.clientId || !appointment.proId) continue;
+
+    const appointmentDate = appointment.dateTime.toDate ? appointment.dateTime.toDate() : new Date(appointment.dateTime._seconds ? appointment.dateTime._seconds * 1000 : appointment.dateTime);
+    const diffMs = appointmentDate.getTime() - nowDate.getTime();
+    const diffMin = Math.round(diffMs / 60000);
+
+    // Récupérer le nom du pro
+    let proName = 'votre professionnel';
+    try {
+      const pro = await getUserById(appointment.proId);
+      if (pro) {
+        proName = `${pro.prenom} ${pro.nom}`;
+      }
+    } catch (e) { /* ignore */ }
+
+    // Rappel 15 minutes avant (entre 14 et 16 minutes)
+    if (diffMin >= 14 && diffMin <= 16) {
+      await notificationPushService.sendAppointmentReminder15min(
+        appointment.clientId,
+        proName,
+        appointmentDate.toLocaleDateString('fr-FR'),
+        appointment.timeSlot || ''
+      );
+    }
+
+    // Rappel 5 minutes avant (entre 4 et 6 minutes)
+    if (diffMin >= 4 && diffMin <= 6) {
+      await notificationPushService.sendAppointmentReminder5min(
+        appointment.clientId,
+        proName,
+        appointmentDate.toLocaleDateString('fr-FR'),
+        appointment.timeSlot || ''
+      );
+    }
+
+    // Rappel 2 minutes avant (entre 1 et 3 minutes)
+    if (diffMin >= 1 && diffMin <= 3) {
+      await notificationPushService.sendAppointmentReminder2min(
+        appointment.clientId,
+        proName,
+        appointmentDate.toLocaleDateString('fr-FR'),
+        appointment.timeSlot || ''
+      );
+    }
+
+    // Notification 5 min avant la fin du RDV (entre 4 et 6 minutes avant la fin)
+    if (appointment.duration) {
+      const endDate = new Date(appointmentDate.getTime() + appointment.duration * 60000);
+      const diffEndMs = endDate.getTime() - nowDate.getTime();
+      const diffEndMin = Math.round(diffEndMs / 60000);
+      if (diffEndMin >= 4 && diffEndMin <= 6) {
+        await notificationPushService.sendAppointmentEndingSoon(
+          appointment.clientId,
+          proName,
+          appointmentDate.toLocaleDateString('fr-FR'),
+          appointment.timeSlot || ''
+        );
+      }
+    }
+
+    // Rappel 2 jours avant (entre 2870 et 2890 minutes = environ 48h ± 10min)
+    const diff2jMin = Math.round((appointmentDate.getTime() - nowDate.getTime()) / 60000);
+    if (diff2jMin >= 2870 && diff2jMin <= 2890) {
+      let clientName = 'votre client';
+      let serviceName = '';
+      try {
+        const pro = await getUserById(appointment.proId);
+        if (pro) {
+          serviceName = pro.serviceTypeId || '';
+        }
+        const client = await getUserById(appointment.clientId);
+        if (client) {
+          clientName = `${client.prenom} ${client.nom}`;
+        }
+      } catch (e) { /* ignore */ }
+      // Notification au client
+      await notificationPushService.sendAppointment2DaysReminder(
+        appointment.clientId,
+        proName,
+        serviceName,
+        appointmentDate.toLocaleDateString('fr-FR'),
+        appointment.timeSlot || '',
+        false
+      );
+      // Notification au pro
+      await notificationPushService.sendAppointment2DaysReminder(
+        appointment.proId,
+        clientName,
+        serviceName,
+        appointmentDate.toLocaleDateString('fr-FR'),
+        appointment.timeSlot || '',
+        true
+      );
+    }
+  }
+};
+
+/**
+ * Génère le fichier reminders.json avec les rendez-vous CONFIRMED du jour et dans 2 jours
+ */
+export const generateDailyRemindersFile = async (): Promise<void> => {
+  const now = admin.firestore.Timestamp.now();
+  const today = now.toDate();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+  const in2Days = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2, 23, 59, 59, 999);
+
+  // RDV du jour
+  const todaySnapshot = await appointmentsCollection
+    .where('status', '==', AppointmentStatus.CONFIRMED)
+    .where('dateTime', '>=', admin.firestore.Timestamp.fromDate(startOfDay))
+    .where('dateTime', '<=', admin.firestore.Timestamp.fromDate(endOfDay))
+    .get();
+
+  // RDV dans 2 jours
+  const in2DaysStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2, 0, 0, 0, 0);
+  const in2DaysEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2, 23, 59, 59, 999);
+  const in2DaysSnapshot = await appointmentsCollection
+    .where('status', '==', AppointmentStatus.CONFIRMED)
+    .where('dateTime', '>=', admin.firestore.Timestamp.fromDate(in2DaysStart))
+    .where('dateTime', '<=', admin.firestore.Timestamp.fromDate(in2DaysEnd))
+    .get();
+
+  const reminders: ReminderEntry[] = [];
+  for (const doc of todaySnapshot.docs.concat(in2DaysSnapshot.docs)) {
+    const data = doc.data() as Appointment;
+    reminders.push({
+      id: doc.id,
+      proId: data.proId,
+      clientId: data.clientId,
+      dateTime: data.dateTime,
+      duration: data.duration,
+      timeSlot: data.timeSlot,
+      status: data.status,
+      ...(data.roomId ? { roomId: data.roomId } : {}),
+    });
+  }
+  await setReminders(reminders);
 };

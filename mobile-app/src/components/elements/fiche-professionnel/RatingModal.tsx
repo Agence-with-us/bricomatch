@@ -20,39 +20,34 @@ interface RatingModalProps {
 }
 
 const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, appointmentEtUser }) => {
-  const [rating, setRating] = useState(0);
+  const [ratings, setRatings] = useState({
+    conseil: 0,
+    ecoute: 0,
+    resolution: 0,
+  });
   const [loading, setLoading] = useState(false);
-  const dispatch = useDispatch();
 
-  const handleStarPress = (selectedRating: number) => {
-    setRating(selectedRating);
+  const handleStarPress = (critere: 'conseil' | 'ecoute' | 'resolution', selectedRating: number) => {
+    setRatings(prev => ({ ...prev, [critere]: selectedRating }));
   };
 
+  const moyenne = (ratings.conseil + ratings.ecoute + ratings.resolution) / 3;
+
   const handleSubmit = async () => {
-    if (rating === 0) {
-      Alert.alert('Erreur', 'Veuillez attribuer une note avant d\'envoyer');
+    if (!ratings.conseil || !ratings.ecoute || !ratings.resolution) {
+      Alert.alert('Erreur', 'Veuillez attribuer une note à chaque critère avant d\'envoyer');
       return;
     }
-
     try {
       setLoading(true);
-
-
-
-      // Mise à jour du state global si nécessaire
-      await axiosInstance.post(`/appointments/evaluation`,
-        {
-          proId: appointmentEtUser.otherUser.id,
-          appointmentId: appointmentEtUser.appointment.id,
-          rating
-        });
-
-
+      await axiosInstance.post(`/appointments/evaluation`, {
+        proId: appointmentEtUser.otherUser.id,
+        appointmentId: appointmentEtUser.appointment.id,
+        rating: moyenne,
+      });
       setLoading(false);
       Alert.alert('Succès', 'Merci pour votre évaluation!');
-
-      // Reset les valeurs et fermer le modal
-      setRating(0);
+      setRatings({ conseil: 0, ecoute: 0, resolution: 0 });
       onClose();
     } catch (error) {
       setLoading(false);
@@ -61,19 +56,19 @@ const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, appointment
     }
   };
 
-  const renderStars = () => {
+  const renderStars = (critere: 'conseil' | 'ecoute' | 'resolution', value: number) => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
         <TouchableOpacity
           key={i}
-          onPress={() => handleStarPress(i)}
+          onPress={() => handleStarPress(critere, i)}
           style={styles.starContainer}
         >
           <Ionicons
-            name={i <= rating ? 'star' : 'star-outline'}
+            name={i <= value ? 'star' : 'star-outline'}
             size={40}
-            color={i <= rating ? '#f95200' : '#ccc'}
+            color={i <= value ? '#f95200' : '#ccc'}
           />
         </TouchableOpacity>
       );
@@ -91,29 +86,35 @@ const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, appointment
       <View style={styles.centeredView}>
         <View style={styles.modalView}>
           <Text style={styles.modalTitle}>Évaluez votre expérience</Text>
-          <Text style={styles.modalSubtitle}>Comment s'est passé votre consultation?</Text>
+          <Text style={styles.modalSubtitle}>Merci de noter chaque critère :</Text>
 
-          <View style={styles.starsContainer}>
-            {renderStars()}
+          <View style={{ marginBottom: 15 }}>
+            <Text style={{ fontWeight: 'bold', marginBottom: 5 }}>Qualité du conseil</Text>
+            <View style={styles.starsContainer}>{renderStars('conseil', ratings.conseil)}</View>
+            <Text style={styles.feedbackText}>{ratings.conseil === 0 ? 'Appuyez sur une étoile' : ''}</Text>
           </View>
 
-          <View style={styles.feedbackTextContainer}>
-            <Text style={styles.feedbackText}>
-              {rating === 0 && 'Appuyez sur une étoile pour noter'}
-              {rating === 1 && 'Très insatisfait'}
-              {rating === 2 && 'Insatisfait'}
-              {rating === 3 && 'Moyen'}
-              {rating === 4 && 'Satisfait'}
-              {rating === 5 && 'Très satisfait'}
-            </Text>
+          <View style={{ marginBottom: 15 }}>
+            <Text style={{ fontWeight: 'bold', marginBottom: 5 }}>Écoute</Text>
+            <View style={styles.starsContainer}>{renderStars('ecoute', ratings.ecoute)}</View>
+            <Text style={styles.feedbackText}>{ratings.ecoute === 0 ? 'Appuyez sur une étoile' : ''}</Text>
           </View>
+
+          <View style={{ marginBottom: 15 }}>
+            <Text style={{ fontWeight: 'bold', marginBottom: 5 }}>Résolution du problème</Text>
+            <View style={styles.starsContainer}>{renderStars('resolution', ratings.resolution)}</View>
+            <Text style={styles.feedbackText}>{ratings.resolution === 0 ? 'Appuyez sur une étoile' : ''}</Text>
+          </View>
+
+          <Text style={{ fontWeight: 'bold', marginBottom: 10 }}>
+            Moyenne : {ratings.conseil && ratings.ecoute && ratings.resolution ? moyenne.toFixed(2) + ' / 5' : '-'}
+          </Text>
 
           <View style={styles.buttonsContainer}>
-
             <TouchableOpacity
-              style={[styles.button, styles.submitButton, rating === 0 && styles.disabledButton]}
+              style={[styles.button, styles.submitButton, (!ratings.conseil || !ratings.ecoute || !ratings.resolution) && styles.disabledButton]}
               onPress={handleSubmit}
-              disabled={rating === 0 || loading}
+              disabled={!ratings.conseil || !ratings.ecoute || !ratings.resolution || loading}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" size="small" />

@@ -300,7 +300,7 @@ const AppointmentsScreen = () => {
     <View style={styles.emptyContainer}>
       <Ionicons name="calendar-outline" size={60} color="#ccc" />
       <Text style={styles.emptyText}>
-        Aucun rendez-vous {type === 'upcoming' ? 'à venir' : 'passé'}
+        Aucun rendez-vous {type === 'upcoming' ? 'à venir' : type === 'ongoing' ? 'en cours' : 'passé'}
       </Text>
     </View>
   );
@@ -322,18 +322,42 @@ const AppointmentsScreen = () => {
         showsVerticalScrollIndicator={true}
       >
 
-        {/* Section Rendez-vous à venir */}
+        {/* Section Rendez-vous en cours */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>MES RDV EN COURS</Text>
+          </View>
+
+          {upcomingAppointments.filter(item => item.isOngoing).length === 0 ? (
+            <View style={styles.emptySection}>
+              {renderEmptyList('ongoing')}
+            </View>
+          ) : (
+            upcomingAppointments.filter(item => item.isOngoing).map((item) => (
+              <AppointmentCardItem
+                key={item.appointment.id!}
+                appointmentWithOtherUser={item}
+                currentUser={currentUser!}
+                joinVideoCall={joinVideoCall}
+                cancelAppointment={undefined} // Désactive le bouton Annuler pour les RDV en cours
+                confirmAppointment={confirmAppointment}
+              />
+            ))
+          )}
+        </View>
+
+        {/* Section Rendez-vous à venir (hors en cours) */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>MES RDV À VENIR</Text>
           </View>
 
-          {upcomingAppointments.length === 0 ? (
+          {upcomingAppointments.filter(item => !item.isOngoing).length === 0 ? (
             <View style={styles.emptySection}>
               {renderEmptyList('upcoming')}
             </View>
           ) : (
-            upcomingAppointments.map((item) => (
+            upcomingAppointments.filter(item => !item.isOngoing).map((item) => (
               <AppointmentCardItem
                 key={item.appointment.id!}
                 appointmentWithOtherUser={item}

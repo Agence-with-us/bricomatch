@@ -33,7 +33,7 @@ export default {
       googleServicesFile: './src/fichier-sensibles/google-services.json',
       versionCode: 8,
       adaptiveIcon: {
-        foregroundImage: './assets/icon.png',
+        foregroundImage: './assets/icon-bricomatch-1024.png',
         backgroundColor: '#F95200',
       },
       permissions: [

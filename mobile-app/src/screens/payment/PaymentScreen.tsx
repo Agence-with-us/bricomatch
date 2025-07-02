@@ -34,6 +34,10 @@ export default function PaymentScreen() {
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [createdAppointment, setCreatedAppointment] = useState<Appointment>();
     const [cardAnimation] = useState(new Animated.Value(0));
+    
+    // Timer states
+    const [timeRemaining, setTimeRemaining] = useState(600); // 10 minutes en secondes
+    const [timerExpired, setTimerExpired] = useState(false);
 
     const currentUser = useSelector((state: RootState) => state.auth.user);
     const { confirmPayment } = useStripe();
@@ -51,6 +55,37 @@ export default function PaymentScreen() {
             useNativeDriver: true,
         }).start();
     }, []);
+
+    // Timer countdown effect
+    useEffect(() => {
+        if (timeRemaining <= 0) {
+            setTimerExpired(true);
+            showToast(
+                "Session expirée", 
+                "Le délai de paiement a expiré. Veuillez recommencer.", 
+                "error"
+            );
+            return;
+        }
+
+        const timer = setInterval(() => {
+            setTimeRemaining(prev => prev - 1);
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [timeRemaining]);
+
+    const formatTime = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    };
+
+    const getTimerColor = () => {
+        if (timeRemaining <= 60) return '#FF3D3D'; // Rouge si moins d'1 minute
+        if (timeRemaining <= 180) return '#FF9500'; // Orange si moins de 3 minutes
+        return '#34C759'; // Vert sinon
+    };
 
     const createAppointmentOnServer = async () => {
         try {
@@ -73,6 +108,12 @@ export default function PaymentScreen() {
     };
 
     const handlePayment = async () => {
+        if (timerExpired) {
+            showToast("Session expirée", "Veuillez recommencer le processus de réservation.", "error");
+            goBack();
+            return;
+        }
+
         if (!cardDetails?.complete || !clientSecret) {
             showToast("Veuillez compléter les informations de votre carte", 'Veuillez remplir les champs de la carte', 'error')
             return;
@@ -118,7 +159,10 @@ export default function PaymentScreen() {
         }
     };
 
-
+    const handleTimerExpired = () => {
+        showToast("Session expirée", "Veuillez recommencer le processus de réservation.", "error");
+        goBack();
+    };
 
     if (isLoading) {
         return (
@@ -133,9 +177,31 @@ export default function PaymentScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-               
+            {/* Timer fixe */}
+            <View style={[styles.timerContainer, { backgroundColor: getTimerColor() }]}>
+                <View style={styles.timerContent}>
+                    <Text style={styles.timerIcon}>⏱️</Text>
+                    <View style={styles.timerTextContainer}>
+                        <Text style={styles.timerLabel}>Temps restant</Text>
+                        <Text style={styles.timerText}>{formatTime(timeRemaining)}</Text>
+                    </View>
+                    {timeRemaining <= 60 && (
+                        <View style={styles.urgentIndicator}>
+                            <Text style={styles.urgentText}>!</Text>
+                        </View>
+                    )}
+                </View>
+                {timerExpired && (
+                    <TouchableOpacity 
+                        style={styles.expiredButton}
+                        onPress={handleTimerExpired}
+                    >
+                        <Text style={styles.expiredButtonText}>Recommencer</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
 
+            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 {/* Appointment Summary */}
                 <View style={styles.summaryCard}>
                     <Text style={styles.sectionTitle}>Récapitulatif du rendez-vous</Text>
@@ -209,7 +275,6 @@ export default function PaymentScreen() {
                     </View>
                 </View>
 
-            
                 {/* Card Input */}
                 <View style={styles.cardInputCard}>
                     <Text style={styles.sectionTitle}>💳 Informations de paiement</Text>
@@ -228,7 +293,6 @@ export default function PaymentScreen() {
                                 console.log(cardDetails)
                                 setCardDetails(cardDetails);
                             }}
-
                         />
                         {Platform.OS === 'ios' && (
                           <TouchableOpacity
@@ -251,23 +315,26 @@ export default function PaymentScreen() {
                 <TouchableOpacity
                     style={[
                         styles.payButton,
-                        (!cardDetails?.complete || isProcessing) && styles.payButtonDisabled,
-                        cardDetails?.complete && !isProcessing && styles.payButtonReady
+                        (!cardDetails?.complete || isProcessing || timerExpired) && styles.payButtonDisabled,
+                        cardDetails?.complete && !isProcessing && !timerExpired && styles.payButtonReady
                     ]}
                     onPress={handlePayment}
-                    disabled={!cardDetails?.complete || isProcessing}
+                    disabled={!cardDetails?.complete || isProcessing || timerExpired}
                 >
                     {isProcessing ? (
                         <View style={styles.processingContainer}>
                             <ActivityIndicator color="#FFFFFF" size="small" />
                             <Text style={styles.processingText}>Traitement en cours...</Text>
                         </View>
+                    ) : timerExpired ? (
+                        <View style={styles.payButtonContent}>
+                            <Text style={styles.payButtonText}>Session expirée</Text>
+                        </View>
                     ) : (
                         <View style={styles.payButtonContent}>
                             <Text style={styles.payButtonText}>
                                 🔐 Autoriser le paiement {(createdAppointment?.montantTotal! / 100).toFixed(2)} €
                             </Text>
-
                         </View>
                     )}
                 </TouchableOpacity>
@@ -288,8 +355,76 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#f5f7fa',
     },
+    // Styles du timer
+    timerContainer: {
+        position: 'absolute',
+        top: Platform.OS === 'ios' ? 15 : 20,
+        left: 16,
+        right: 16,
+        zIndex: 1000,
+        borderRadius: 12,
+        padding: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    timerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    timerIcon: {
+        fontSize: 20,
+        marginRight: 8,
+    },
+    timerTextContainer: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    timerLabel: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '600',
+        opacity: 0.9,
+    },
+    timerText: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: '700',
+        fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    urgentIndicator: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        width: 24,
+        height: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 8,
+    },
+    urgentText: {
+        color: '#FF3D3D',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    expiredButton: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        marginTop: 8,
+    },
+    expiredButtonText: {
+        color: '#FF3D3D',
+        fontSize: 14,
+        fontWeight: '600',
+        textAlign: 'center',
+    },
     scrollView: {
         flex: 1,
+        paddingTop: 80, // Espace pour le timer fixe
     },
     loadingContainer: {
         flex: 1,

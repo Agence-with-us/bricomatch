@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { AppointmentStatus } from "../store/appointments/types";
 
 export const formatDateTimeFromTimeStamp = (timestamp: any) => {
     if (!timestamp) {
@@ -48,3 +49,13 @@ export const formatFullDateTimeFromTimeStamp = (timestamp: any) => {
 
     return format(date, "dd MMMM yyyy à HH:mm", { locale: fr });
 };
+
+/**
+ * Statuts de rendez-vous bloquants pour la réservation d'un rendez-vous
+ * 
+ * @returns {string[]} - Les statuts de rendez-vous bloquants
+ */
+export const blockingStatuses = [
+  AppointmentStatus.PENDING, AppointmentStatus.PAYMENT_INITIATED, AppointmentStatus.PAYMENT_AUTHORIZED, AppointmentStatus.CONFIRMED,
+  AppointmentStatus.COMPLETED, AppointmentStatus.PENDING_PAYOUT, AppointmentStatus.PAID_OUT, AppointmentStatus.CANCELLED_BY_PRO_PENDING
+];

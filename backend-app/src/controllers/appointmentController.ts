@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import admin from 'firebase-admin';
 
 import {
@@ -10,7 +10,7 @@ import {
 } from '../services/appointmentService';
 import { AuthRequest } from '../middleware/auth';
 import { Appointment, AppointmentStatus, UserRole } from '../types';
-import { createPaymentIntent, capturePaymentIntent, refundPayment } from '../services/paymentService';
+import { createPaymentIntent } from '../services/paymentService';
 import { getUserById, getUserDetails } from '../services/userService';
 import { generateInvoice } from '../services/invoiceService';
 import { ClientError } from '../helpers/ClientError';
@@ -70,6 +70,7 @@ export const createAppointment = async (req: AuthRequest, res: Response, next: N
       proId,
       clientId: req.user.id,
       dateTime: admin.firestore.Timestamp.fromDate(utcDate),
+      createdAt: admin.firestore.Timestamp.now(),
       duration,
       timeSlot, // On conserve éventuellement le timeSlot si besoin
       status: AppointmentStatus.PAYMENT_INITIATED,
@@ -135,14 +136,17 @@ export const confirmAppointment = async (req: AuthRequest, res: Response, next: 
     );
 
 
-    // 🔔 NOUVELLE FONCTIONNALITÉ : Envoyer une notification au client
-
-    await notificationPushService.sendAppointmentConfirmationNotification(
+    // 🔔 NOUVELLE FONCTIONNALITÉ : Envoyer une notification au client 
+    await notificationPushService.sendGenericNotification(
       appointment.clientId,
       {
-        proName: `${userDetails?.prenom} ${userDetails?.nom}`,
-        date: appointment.dateTime.toDate().toLocaleDateString('fr-FR'),
-        time: appointment.timeSlot,
+        title: "📆 Votre rendez-vous a été confirmé !",
+        body: `Votre rendez-vous avec ${userDetails?.prenom} ${userDetails?.nom} le ${appointment.dateTime.toDate().toLocaleDateString('fr-FR')} à ${appointment.timeSlot} a été confirmé.`,
+        type: "appointment_confirmed",
+        action: "view_appointment",
+        additionalData: {
+          appointmentId: appointment.id,
+        },
       }
     );
     console.log('✅ Notification de confirmation envoyée au client');
@@ -162,7 +166,14 @@ export const confirmAppointment = async (req: AuthRequest, res: Response, next: 
   }
 };
 
-// Cancel appointment and refund payment (PRO only)
+/**
+ * Annule un rendez-vous et rembourse le paiement (PRO only et PARTICULIER)
+ * Plusieurs cas de figure :
+ * - Si le rendez-vous est PAYMENT_INITIATED, On fait rien
+ * - Si le rendez-vous est PAYMENT_AUTHORIZED, on annule (Pas de paiement capturé donc pas de remboursement)
+ * - Si le rendez-vous est CONFIRMED, on annule et on rembourse (en fonction de la date et de l'heure)
+ * - Si le rendez-vous est COMPLETED , on fait rien (on ne peut pas annuler un rendez-vous terminé)
+ */
 export const cancelAppointment = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
@@ -172,6 +183,7 @@ export const cancelAppointment = async (req: AuthRequest, res: Response, next: N
       throw new ClientError("L'authentification est requise", 401);
     }
 
+    // Appel du service pour annuler le rendez-vous
     const updatedAppointment = await cancelAppointmentService(id, req.user.id, req.user?.role);
     return res.status(200).json({
       success: true,
@@ -204,15 +216,34 @@ export const autoriserPaiementAppointment = async (req: AuthRequest, res: Respon
       throw new ClientError("Rendez-vous non trouvé ou pas éligible à l'autorisation de paiement", 404);
     }
 
-    const userDetails = await getUserDetails(req.user!.id);
+    const clientDetails = await getUserById(appointment.clientId);
 
-    await notificationPushService.sendNewAppointmentNotification(
+    // 🔔 NOUVELLE FONCTIONNALITÉ : Envoyer une notification au client
+      await notificationPushService.sendGenericNotification(
+      appointment.clientId,
+      {
+        title: "📆 Votre créneau a été réservé !",
+        body: `Bonjour ${clientDetails?.prenom} , votre créneau le ${appointment.dateTime.toDate().toLocaleDateString('fr-FR')} à ${appointment.timeSlot} a été réservé. Vous recevrez une notification quand le pro confirmera la réservation.`,
+        type: "reservation_confirmation",
+        action: "view_appointment",
+        additionalData: {
+          appointmentId: appointment.id,
+        },
+      }
+    );
+
+
+    // 🔔 NOUVELLE FONCTIONNALITÉ : Envoyer une notification au client
+    await notificationPushService.sendGenericNotification(
       appointment.proId,
       {
-        clientName: `${userDetails?.prenom} ${userDetails?.nom}`,
-        date: appointment.dateTime.toDate().toLocaleDateString('fr-FR'),
-        time: appointment.timeSlot,
-        appointmentId: appointment.id!
+        title: "📆 Un nouveau rendez-vous a été réservé !",
+        body: `Un nouveau rendez-vous a été réservé le ${appointment.dateTime.toDate().toLocaleDateString('fr-FR')} à ${appointment.timeSlot} par ${clientDetails?.prenom} ${clientDetails?.nom}.`,
+        type: "new_appointment_reservation",
+        action: "view_appointment",
+        additionalData: {
+          appointmentId: appointment.id,
+        },
       }
     );
 

@@ -1,3 +1,4 @@
+// Importation des bibliothèques nécessaires
 import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
@@ -12,57 +13,70 @@ import { formatDateForDisplay, generateTimeSlots } from '../../../utils/availabi
 import { Appointment, AppointmentStatus } from '../../../store/appointments/types';
 import { navigate } from '../../../services/navigationService';
 import { UserLocal } from '../../../store/users/types';
-
+import { checkSlotAvailability, getProfessionalAppointmentsByDate } from '../../../services/appointmentService';
+import { blockingStatuses } from '../../../utils/appointmentUtils';
+// Récupère la hauteur de l'écran
 const { height } = Dimensions.get('window');
 
+// Déclaration des types des props attendues par le composant
 interface AppointmentBookingModalProps {
-    visible: boolean;
-    onClose: () => void;
-    professionalIdInfo: UserLocal;
-    appointments?: any[];
-    initialShowCalendar?: boolean;
-    initialDate?: string;
+    visible: boolean; // Affichage du modal
+    onClose: () => void; // Fonction de fermeture
+    professionalIdInfo: UserLocal; // Infos du professionnel
+    initialShowCalendar?: boolean; // Afficher d'abord le calendrier
+    initialDate?: string; // Date initialement sélectionnée
 }
 
+/**
+ * Composant principal pour la réservation d'un rendez-vous
+ *Il affiche les jours de disponilité d'un pro et les créneaux disponibles pour une date donnée
+ * les créneaux sont filtrés (Pas de créneaux déjà réservés ou en cours de réservation ou en cours de paiement ou passés)
+ * @param {Object} props - Props du composant
+ * @param {boolean} props.visible - Indique si le modal est visible
+ * @param {Function} props.onClose - Fonction appelée lors de la fermeture du modal
+ * @param {UserLocal} props.professionalIdInfo - Informations du professionnel
+ * @param {boolean} props.initialShowCalendar - Indique si le calendrier doit être affiché en premier
+ * @param {string} props.initialDate - Date initialement sélectionnée
+ * @returns {JSX.Element} - Le composant AppointmentBookingModal
+ */
 const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
     visible,
     onClose,
     professionalIdInfo,
-    appointments = [],
     initialShowCalendar = true,
     initialDate = '',
 }) => {
-    // États pour gérer les sélections
-    const [selectedDuration, setSelectedDuration] = useState<30 | 60>(30);
-    const [selectedDate, setSelectedDate] = useState<string>(initialDate);
-    const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
-    const [showCalendar, setShowCalendar] = useState<boolean>(initialShowCalendar);
-    const [availableTimeSlots, setAvailableTimeSlots] = useState<{ start: string, end: string, isAvailable: boolean, duration: number }[]>([]);
+    // États pour la gestion des sélections et de l'affichage
+    const [selectedDuration, setSelectedDuration] = useState<30 | 60>(30); // Durée sélectionnée (30 ou 60 minutes)
+    const [selectedDate, setSelectedDate] = useState<string>(initialDate); // Date choisie
+    const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>(''); // Créneau choisi
+    const [showCalendar, setShowCalendar] = useState<boolean>(initialShowCalendar); // Affichage du calendrier
+    const [availableTimeSlots, setAvailableTimeSlots] = useState<{ start: string, end: string, isAvailable: boolean, duration: number }[]>([]); // Créneaux disponibles
+    const [loadingSlots, setLoadingSlots] = useState(false); // Chargement des créneaux
 
-    const { otherProAvailability} = useSelector((state: RootState) => state.availability);
+    // Récupération des disponibilités depuis Redux (format : {Mercredi: {start: string, end: string}})
+    const { otherProAvailability } = useSelector((state: RootState) => state.availability);
+
+    // Récupération des disponibilités du particulier connecté
     const { user } = useSelector((state: RootState) => state.auth);
 
- 
-    // Animation du modal
+    // Animation pour la montée/descente du modal
     const modalY = useRef(new Animated.Value(height)).current;
-    const modalHeight = height * 0.9; // 90% de la hauteur de l'écran
+    const modalHeight = height * 0.9;
 
-
-
-    // Gestionnaire de défilement pour fermer le modal
+    // Gestion du glisser-pour-fermer (pan responder)
     const panResponder = useRef(
         PanResponder.create({
             onStartShouldSetPanResponder: () => true,
             onPanResponderMove: (_, gestureState) => {
-                if (gestureState.dy > 0) { // Seulement si on glisse vers le bas
+                if (gestureState.dy > 0) {
                     modalY.setValue(gestureState.dy);
                 }
             },
             onPanResponderRelease: (_, gestureState) => {
-                if (gestureState.dy > 100) { // Seuil de fermeture
+                if (gestureState.dy > 100) {
                     closeModal();
                 } else {
-                    // Revenir à la position initiale
                     Animated.spring(modalY, {
                         toValue: 0,
                         useNativeDriver: true,
@@ -72,7 +86,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
         })
     ).current;
 
-    // Fonction pour ouvrir le modal
+    // Ouvre le modal avec animation
     const openModal = () => {
         Animated.spring(modalY, {
             toValue: 0,
@@ -82,7 +96,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
         }).start();
     };
 
-    // Fonction pour fermer le modal
+    // Ferme le modal avec animation
     const closeModal = () => {
         Animated.timing(modalY, {
             toValue: height,
@@ -91,10 +105,9 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
         }).start(() => onClose());
     };
 
-    // Gérer l'ouverture du modal quand il devient visible
+    // Gère l'ouverture du modal selon les props
     useEffect(() => {
         if (visible) {
-            // Si on veut ouvrir directement sur les créneaux d'une date
             if (!initialShowCalendar && initialDate) {
                 setSelectedDate(initialDate);
                 setShowCalendar(false);
@@ -106,74 +119,97 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
         }
     }, [visible]);
 
-
-    // Gérer la sélection d'un créneau horaire
+    // Gère la sélection d'un créneau horaire
     const handleTimeSlotSelect = (timeSlot: string) => {
         setSelectedTimeSlot(timeSlot);
     };
 
-
-
-    // Vérifier si le bouton de confirmation doit être activé
+    // Vérifie si le bouton "Confirmer" doit être activé
     const isConfirmButtonEnabled = selectedDate && selectedTimeSlot;
 
-    // Gestion de la confirmation
-    const handleConfirm = () => {
+    // Lorsque l'utilisateur confirme un créneau
+    const handleConfirm = async () => {
+        // Si le bouton "Confirmer" est activé
         if (isConfirmButtonEnabled) {
+            // Vérifie si le créneau est toujours disponible (en temps réel) ( pour deux vérifications)
+            const isStillAvailable = await checkSlotAvailability(
+                professionalIdInfo.id,
+                new Date(selectedDate),
+                selectedTimeSlot
+            );
+            if (!isStillAvailable) {
+                alert('Ce créneau vient d\'être réservé. Merci de choisir un autre créneau.');
+                return;
+            }
+
+            // Création de l'objet rendez-vous
             const appointment: Appointment = {
                 proId: professionalIdInfo.id,
                 clientId: user?.id,
-                dateTime: { toDate: () => new Date(selectedDate) }, // Conversion vers `Date`
+                dateTime: { toDate: () => new Date(selectedDate) },
                 timeSlot: selectedTimeSlot,
-                duration: selectedDuration, // Durée en minutes
+                duration: selectedDuration,
                 status: AppointmentStatus.PENDING,
             };
-            navigate('Payment', { appointment, proInfo: professionalIdInfo })
+
+            // Navigation vers la page de paiement
+            navigate('Payment', { appointment, proInfo: professionalIdInfo });
             closeModal();
         }
     };
 
-    // Retour au calendrier
+    // Retourner à l'écran de sélection de date
     const handleBackToCalendar = () => {
         setShowCalendar(true);
         setSelectedTimeSlot('');
     };
 
-
-    // Mettre à jour les créneaux disponibles lorsqu'une date est sélectionnée
+    // Chargement des créneaux disponibles à chaque changement de date/durée
     useEffect(() => {
+        const fetchAndSetSlots = async () => {
+            // Si la date est sélectionnée et que les disponibilités du pro sont disponibles
+            if (selectedDate && otherProAvailability) {
+                setLoadingSlots(true);
+                const date = new Date(selectedDate); // format : 2025-07-01
+                const dayOfWeek = date.getDay(); // 0 = Dimanche, 1 = Lundi, 2 = Mardi, 3 = Mercredi ...
+                const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+                const dayName = dayNames[dayOfWeek]; // format : Mercredi
 
-        if (selectedDate && otherProAvailability) {
-            const date = new Date(selectedDate);
-            // Convertir en jour de la semaine français (0 à 6 avec 0 = dimanche)
-            const dayOfWeek = date.getDay();
+                // Récupère les disponibilités pour ce jour
+                const dayAvailability = otherProAvailability[dayName] || otherProAvailability[dayOfWeek.toString()] || [];
 
-            // Convertir le jour numérique en nom de jour en français
-            const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-            const dayName = dayNames[dayOfWeek];
+                // Filtrer les rendez-vous à statut bloquant sur cette date, 
+                // Récupère les rendez-vous existants du pro pour la date sélectionnée
+                let proAppointments: Appointment[] = [];
+                try {
+                    proAppointments = await getProfessionalAppointmentsByDate(professionalIdInfo.id, selectedDate,
+                        blockingStatuses
+                    );
+                } catch (e) {
+                    console.error('Erreur lors de la récupération des rendez-vous pro par date:', e);
+                }
 
-            // Vérifier si nous avons des disponibilités pour ce jour
-            const dayAvailability = otherProAvailability[dayName] || otherProAvailability[dayOfWeek.toString()] || [];
-
-            const allSlots = generateTimeSlots(dayAvailability, selectedDate, appointments);
-
-            // Filtrer les créneaux en fonction de la durée sélectionnée
-            const filteredSlots = allSlots.filter(slot => slot.duration === selectedDuration);
-
-            setAvailableTimeSlots(filteredSlots);
-        }
+                // Génère tous les créneaux possibles pour la date sélectionnée
+                const allSlots = generateTimeSlots(dayAvailability, selectedDate, proAppointments);
+                // Filtre les créneaux pour ne garder que ceux de la durée sélectionnée
+                const filteredSlots = allSlots.filter(slot => slot.duration === selectedDuration);
+                // On affiche les créneaux disponibles
+                setAvailableTimeSlots(filteredSlots);
+                setLoadingSlots(false);
+            }
+        };
+        fetchAndSetSlots();
     }, [selectedDate, selectedDuration, otherProAvailability]);
 
-
+    // Nettoyage lors du démontage du composant
     useEffect(() => {
         return () => {
-            // selectedDate()
-            setAvailableTimeSlots([])
-            setSelectedTimeSlot('')
+            setAvailableTimeSlots([]);
+            setSelectedTimeSlot('');
         };
     }, []);
 
-
+    // Affichage debug (à supprimer en prod)
 
     return (
         <Modal transparent visible={visible} animationType="none">
@@ -187,21 +223,21 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
                         },
                     ]}
                 >
-                    {/* Barre de défilement */}
+                    {/* Barre de fermeture draggable */}
                     <View style={styles.header} {...panResponder.panHandlers}>
                         <View style={styles.handleBar} />
                     </View>
 
-                    {/* Contenu du modal */}
                     <SafeAreaView style={styles.modalContent}>
-                        {/* En-tête du modal */}
+                        {/* En-tête de sélection de durée */}
                         <View style={styles.modalHeader}>
                             <Text style={styles.title}>Durée du créneau</Text>
                         </View>
 
-                        {/* Sélection de la durée */}
+                        {/* Boutons de sélection de durée */}
                         <View style={styles.durationSelector}>
                             <View style={styles.durationButtons}>
+                                {/* Bouton 30 min */}
                                 <TouchableOpacity
                                     style={[
                                         styles.durationButton,
@@ -209,7 +245,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
                                     ]}
                                     onPress={() => {
                                         setSelectedDuration(30);
-                                        // Réinitialiser le créneau sélectionné car la durée a changé
+                                        // Réinitialise le créneau si on change de durée après avoir quitté le calendrier
                                         if (selectedDate && !showCalendar) {
                                             setSelectedTimeSlot('');
                                         }
@@ -224,6 +260,8 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
                                         30 min
                                     </Text>
                                 </TouchableOpacity>
+
+                                {/* Bouton 60 min */}
                                 <TouchableOpacity
                                     style={[
                                         styles.durationButton,
@@ -231,9 +269,7 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
                                     ]}
                                     onPress={() => {
                                         setSelectedDuration(60);
-                                        setSelectedTimeSlot('');
-
-
+                                        setSelectedTimeSlot(''); // Réinitialiser le créneau sélectionné
                                     }}
                                 >
                                     <Text
@@ -248,10 +284,10 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
                             </View>
                         </View>
 
-                        {/* Partie principale - Calendrier ou Créneaux */}
+                        {/* Zone principale : soit calendrier, soit créneaux horaires */}
                         <View style={styles.mainContent}>
                             {showCalendar ? (
-                                // Calendrier
+                                // Affichage du calendrier pour sélectionner une date
                                 <View style={styles.calendarContainer}>
                                     <Text style={styles.sectionTitle}>Sélectionnez une date</Text>
                                     <AvailabilityCalendar
@@ -259,14 +295,15 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
                                         defaultDate={selectedDate}
                                         onDateSelect={(date: string) => {
                                             setSelectedDate(date);
-                                            setShowCalendar(false)
+                                            setShowCalendar(false); // Une fois la date choisie, on passe aux créneaux
                                         }}
                                     />
                                 </View>
                             ) : (
-                                // Créneaux horaires
+                                // Affichage des créneaux disponibles pour la date sélectionnée
                                 <View style={styles.timeSlotsContainer}>
                                     <View style={styles.timeSlotsHeader}>
+                                        {/* Bouton retour au calendrier */}
                                         <TouchableOpacity
                                             style={styles.backButton}
                                             onPress={handleBackToCalendar}
@@ -274,17 +311,24 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
                                             <Icon name="arrow-back" size={20} color="#f95200" />
                                             <Text style={styles.backButtonText}>Calendrier</Text>
                                         </TouchableOpacity>
-
-
                                     </View>
+
+                                    {/* Affichage de la date sélectionnée */}
                                     <Text style={styles.dateText}>
                                         {formatDateForDisplay(selectedDate)}
                                     </Text>
 
                                     <Text style={styles.sectionTitle}>Créneaux disponibles</Text>
 
-                                    {
-                                        availableTimeSlots.length > 0 ? <ScrollView style={styles.timeSlotsScroll}>
+                                    {/* Affichage conditionnel des créneaux */}
+                                    {loadingSlots ? (
+                                        // En cours de chargement
+                                        <View className='flex flex-1 justify-center items-center'>
+                                            <Text>Chargement des créneaux...</Text>
+                                        </View>
+                                    ) : availableTimeSlots.length > 0 ? (
+                                        // Créneaux disponibles
+                                        <ScrollView style={styles.timeSlotsScroll}>
                                             <View style={styles.timeSlotGrid}>
                                                 {availableTimeSlots.map((slot, index) => (
                                                     slot.isAvailable && (
@@ -309,35 +353,36 @@ const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = ({
                                                 ))}
                                             </View>
                                         </ScrollView>
-                                            :
-                                            <View className='flex flex-1 justify-center items-center'>
-                                                <Text className='text-orange-500'>Aucun créneau disponible pour cette date</Text>
-                                            </View>
-                                    }
-
+                                    ) : (
+                                        // Aucun créneau disponible
+                                        <View className='flex flex-1 justify-center items-center'>
+                                            <Text className='text-orange-500'>Aucun créneau disponible pour cette date</Text>
+                                        </View>
+                                    )}
                                 </View>
                             )}
                         </View>
 
-                        {/* Pied de page - Résumé et bouton de confirmation */}
+                        {/* Pied du modal : récapitulatif et bouton de confirmation */}
                         <View style={styles.footer} className='flex-row justify-between p-5 py-4 '>
-                            <View >
+                            {/* Résumé durée + prix */}
+                            <View>
                                 {selectedDate ? (
                                     <View>
                                         <Text className="text-muted font-bold text-xl ">
                                             {selectedDuration}€
                                         </Text>
-                                        <Text >
+                                        <Text>
                                             {selectedDuration === 30 ? '30 minutes' : '60 minutes'}
                                         </Text>
                                     </View>
                                 ) : null}
                             </View>
 
+                            {/* Bouton de confirmation */}
                             <TouchableOpacity
                                 className='flex justify-center p-5 rounded-full'
                                 style={[
-
                                     isConfirmButtonEnabled
                                         ? styles.confirmButtonEnabled
                                         : styles.confirmButtonDisabled,

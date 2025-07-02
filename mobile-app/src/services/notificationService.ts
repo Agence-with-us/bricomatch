@@ -11,7 +11,8 @@ import {
 } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, PermissionsAndroid, Alert } from 'react-native';
-import notifee from '@notifee/react-native';
+import notifee, { AndroidImportance, AndroidVisibility } from '@notifee/react-native';
+import { showToast } from '../utils/toastNotification';
 
 class NotificationService {
   isInitialized: boolean;
@@ -30,12 +31,16 @@ class NotificationService {
    */
   async initialize(userId: string) {
     try {
-
       if (!userId) {
         throw new Error('User ID requis pour initialiser les notifications');
       }
 
       this.currentUserId = userId;
+
+      // Créer le canal de notification Android AVANT tout le reste
+      if (Platform.OS === 'android') {
+        await this.createNotificationChannel();
+      }
 
       // Demander les permissions AVANT d'obtenir le token
       const hasPermission = await this.requestPermission();
@@ -75,11 +80,35 @@ class NotificationService {
   }
 
   /**
+   * Crée le canal de notification pour Android
+   */
+  async createNotificationChannel() {
+    try {
+      const channelId = await notifee.createChannel({
+        id: 'default',
+        name: 'Notifications par défaut',
+        importance: AndroidImportance.HIGH,
+        visibility: AndroidVisibility.PUBLIC,
+        sound: 'default',
+        vibration: true,
+        badge: true,
+        lights: true,
+        lightColor: '#FF5722',
+      });
+
+      console.log('✅ Canal de notification créé:', channelId);
+      return channelId;
+    } catch (error) {
+      console.error('❌ Erreur création du canal:', error);
+      return 'default';
+    }
+  }
+
+  /**
    * Demande les permissions de notifications
    */
   async requestPermission() {
     try {
-
       // Pour Android 13+ (API level 33+), demander explicitement la permission
       if (Platform.OS === 'android' && Platform.Version >= 33) {
         const granted = await PermissionsAndroid.request(
@@ -94,6 +123,15 @@ class NotificationService {
         );
 
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          return false;
+        }
+      }
+
+      // Vérifier les permissions Notifee pour Android
+      if (Platform.OS === 'android') {
+        const settings = await notifee.getNotificationSettings();
+        if (settings.authorizationStatus !== 1) { // 1 = AUTHORIZED
+          await notifee.openNotificationSettings();
           return false;
         }
       }
@@ -237,22 +275,90 @@ class NotificationService {
         await this.saveTokenToFirestore(token);
       }
     });
+
+    // Listener pour les notifications Notifee (Android)
+    if (Platform.OS === 'android') {
+      notifee.onForegroundEvent(({ type, detail }) => {
+        console.log('📱 Événement Notifee foreground:', type, detail);
+          showToast(detail.notification?.title || 'Nouvelle notification', detail.notification?.body || 'Notification reçue',  'notification_android_push');
+      });
+
+      notifee.onBackgroundEvent(async ({ type, detail }) => {
+        console.log('📱 Événement Notifee background:', type, detail);
+        showToast(detail.notification?.title || 'Nouvelle notification', detail.notification?.body || 'Notification reçue',  'notification_android_push');
+      });
+    }
   }
 
   /**
    * Gère les notifications reçues en foreground
    */
   async handleForegroundNotification(remoteMessage: any) {
+    try {
+      console.log('🔔 Affichage de la notification foreground...');
+      
+      const notification = {
+        id: remoteMessage.messageId || Date.now().toString(),
+        title: remoteMessage.notification?.title || 'Nouvelle notification',
+        body: remoteMessage.notification?.body || 'Notification reçue',
+        data: remoteMessage.data || {},
+        android: {
+          channelId: 'default',
+          color: '#FF5722',
+          importance: AndroidImportance.HIGH,
+          visibility: AndroidVisibility.PUBLIC,
+          autoCancel: true,
+          showTimestamp: true,
+          timestamp: Date.now(),
+          // Ajouter des vibrations et sons
+          vibrationPattern: [300, 500],
+          sound: 'default',
+          // Forcer l'affichage
+          ongoing: false,
+          onlyAlertOnce: false,
+          // Actions possibles
+          actions: [
+            {
+              title: 'Voir',
+              pressAction: {
+                id: 'view',
+              },
+            },
+            {
+              title: 'Ignorer',
+              pressAction: {
+                id: 'dismiss',
+              },
+            },
+          ],
+        },
+        ios: {
+          sound: 'default',
+          badge: 1,
+        },
+      };
 
-    await notifee.displayNotification({
-      title: remoteMessage.notification?.title || 'Nouvelle notification',
-      body: remoteMessage.notification?.body || 'Notification reçue',
-      android: {
-        channelId: 'default',
-        smallIcon: 'ic_launcher',
-        color: '#FF5722',
-      },
-    });
+      // Afficher la notification
+      await notifee.displayNotification(notification);
+      console.log('✅ Notification affichée avec succès');
+
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'affichage de la notification:', error);
+      
+      // Fallback : essayer une notification basique
+      try {
+        await notifee.displayNotification({
+          title: remoteMessage.notification?.title || 'Notification',
+          body: remoteMessage.notification?.body || 'Nouveau message',
+          android: {
+            channelId: 'default',
+            importance: AndroidImportance.HIGH,
+          },
+        });
+      } catch (fallbackError) {
+        console.error('❌ Erreur fallback notification:', fallbackError);
+      }
+    }
   }
 
   /**
@@ -295,7 +401,6 @@ class NotificationService {
         return isSamePlatform && isSameVersion && isDifferentToken;
       });
 
-
       // Supprimer les anciens tokens
       for (const tokenToRemove of tokensToRemove) {
         await updateDoc(userDocRef, {
@@ -320,7 +425,6 @@ class NotificationService {
   async removeCurrentToken() {
     try {
       console.log('Suppression du token actuel');
-      console.log('currentUserId', this.currentUserId);
       if (!this.currentUserId) {
         console.warn('⚠️ Pas d\'utilisateur connecté pour la suppression');
         return;
@@ -341,7 +445,6 @@ class NotificationService {
         return tokenData.platform === Platform.OS &&
           tokenData.version === Platform.Version;
       });
-
 
       // Supprimer tous les tokens de cet appareil
       for (const tokenToRemove of tokensToRemove) {

@@ -47,11 +47,15 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
   const [callEnded, setCallEnded] = useState(false);
+  // Nouvel état pour forcer le rendu de la vidéo locale
+  const [localVideoKey, setLocalVideoKey] = useState(0);
   
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const roomRef = useRef<any>(null);
   const candidatesCollection = useRef<any>(null);
   const backHandler = useRef<any>(null);
+  // Ref pour stocker le stream local
+  const localStreamRef = useRef<any>(null);
 
   // Établir la connexion WebRTC et configurer les écouteurs Firebase
   useEffect(() => {
@@ -68,11 +72,8 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
     // Surveiller l'état de l'application (premier plan/arrière-plan)
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (nextAppState === 'background' || nextAppState === 'inactive') {
-        // L'application passe en arrière-plan, on peut considérer que l'utilisateur quitte
-        // Nettoyage sans message d'alerte car l'app est en arrière-plan
         cleanUp();
         
-        // On peut aussi notifier l'autre participant via Firestore
         if (roomRef.current && isConnected) {
           updateDoc(roomRef.current, { 
             participantLeft: true,
@@ -80,6 +81,13 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
             leftBy: isInitiator ? 'initiator' : 'participant'
           }).catch(err => console.log("Erreur mise à jour statut départ:", err));
         }
+      }
+      // Quand l'app revient au premier plan, on peut relancer la vidéo si nécessaire
+      else if (nextAppState === 'active' && localStreamRef.current && Platform.OS === 'android') {
+        // Forcer le rendu de la vidéo locale sur Android
+        setTimeout(() => {
+          setLocalVideoKey(prev => prev + 1);
+        }, 500);
       }
     });
 
@@ -96,17 +104,43 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
 
   const startCall = async () => {
     try {
-      // Obtenir les flux média locaux (caméra et microphone)
-      const stream = await mediaDevices.getUserMedia({
+      // Configuration média optimisée pour Android
+      const mediaConstraints = {
         audio: true,
         video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
           facingMode: 'user',
+          frameRate: { ideal: 30, max: 30 },
+          // Contraintes spécifiques pour Android
+          ...(Platform.OS === 'android' && {
+            mandatory: {
+              minWidth: 640,
+              minHeight: 480,
+              minFrameRate: 15,
+            },
+            optional: [
+              { maxWidth: 1280 },
+              { maxHeight: 720 },
+              { maxFrameRate: 30 }
+            ]
+          })
         },
-      });
+      };
+
+      // Obtenir les flux média locaux (caméra et microphone)
+      const stream = await mediaDevices.getUserMedia(mediaConstraints);
       
+      // Stocker la référence du stream
+      localStreamRef.current = stream;
       setLocalStream(stream);
+      
+      // Sur Android, forcer un léger délai avant d'afficher la vidéo
+      if (Platform.OS === 'android') {
+        setTimeout(() => {
+          setLocalVideoKey(prev => prev + 1);
+        }, 200);
+      }
       
       // Créer une nouvelle connexion WebRTC
       peerConnection.current = new RTCPeerConnection(configuration);
@@ -155,8 +189,6 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
             const candidate = new RTCIceCandidate(change.doc.data());
             await peerConnection.current?.addIceCandidate(candidate);
             
-            // Si nous sommes l'initiateur et que nous recevons des candidats ICE,
-            // cela signifie que quelqu'un a bien rejoint
             if (isInitiator && isConnecting) {
               console.log("Un participant a commencé à se connecter");
             }
@@ -170,29 +202,17 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
         const iceState = peerConnection.current?.iceConnectionState;
         
         if (iceState === 'disconnected' || iceState === 'failed' || iceState === 'closed') {
-          // La connexion est perdue
           setIsConnected(false);
           
-          // Si la connexion a été établie avant puis perdue
           if (!isConnecting && !callEnded) {
             setCallEnded(true);
             
-            // Afficher un message indiquant que l'autre participant a quitté
             Alert.alert(
               "Appel terminé",
               "L'autre participant a quitté l'appel.",
               [{ text: "OK", onPress: () => navigation.goBack() }]
             );
-            
-            // Si c'est le participant qui a quitté et non l'initiateur, on nettoie quand même
-            // les ressources Firestore pour éviter les salles fantômes
-            if (!isInitiator && roomRef.current) {
-              // deleteDoc(roomRef.current).catch(err => 
-              //   console.log('Erreur lors de la suppression de la salle par le participant:', err)
-              // );
-            }
           } else if (isConnecting) {
-            // Si la connexion échoue pendant l'initialisation
             setIsConnecting(false);
             if (!callEnded) {
               Alert.alert(
@@ -205,19 +225,9 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
         }
       };
       
-      // Pour l'initiateur, nous ne mettons pas de timeout automatique
-      // afin qu'il puisse attendre aussi longtemps qu'il le souhaite
       const connectionTimeout = setTimeout(() => {
-        // if (isConnecting && !isConnected && !isInitiator) {
-        //   // Afficher l'alerte uniquement pour celui qui rejoint, pas pour l'initiateur
-        //   setIsConnecting(false);
-        //   Alert.alert(
-        //     "Connexion échouée",
-        //     "Impossible de rejoindre l'appel. Vérifiez le code de salle et réessayez.",
-        //     [{ text: "OK", onPress: () => navigation.goBack() }]
-        //   );
-        // }
-      }, 60000); // 60 secondes - uniquement pour celui qui rejoint
+        // Timeout logic if needed
+      }, 60000);
       
       return () => {
         clearTimeout(connectionTimeout);
@@ -251,7 +261,6 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
       
       await setDoc(roomRef.current, { offer });
       
-      // Écouter la réponse
       // Écouter la réponse et autres événements de la salle
       const unsubscribe = onSnapshot(roomRef.current, (snapshot : any) => {
         const data = snapshot.data();
@@ -261,11 +270,8 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
           const answerDescription = new RTCSessionDescription(data.answer);
           peerConnection.current?.setRemoteDescription(answerDescription);
           
-          // Si nous recevons une réponse en tant qu'initiateur, cela signifie que
-          // quelqu'un a rejoint l'appel avec succès
           if (isInitiator && isConnecting) {
             console.log("Un participant a rejoint l'appel");
-            // Nous pouvons mettre à jour l'interface ici si nécessaire
           }
         }
         
@@ -327,14 +333,11 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
       
       // Supprimer la salle Firestore
       if (roomRef.current) {
-        // Peu importe qui termine l'appel, nous essayons de supprimer la salle
-        // Pour éviter les salles "fantômes" dans Firestore
         try {
           // await deleteDoc(roomRef.current);
           // console.log("Salle supprimée avec succès");
         } catch (error) {
           console.log("Erreur lors de la suppression de la salle:", error);
-          // Si erreur de permission ou autre, on ne bloque pas l'utilisateur
         }
       }
       
@@ -348,8 +351,8 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
 
   // Nettoyer les ressources
   const cleanUp = () => {
-    if (localStream) {
-      localStream.getTracks().forEach((track: any) => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track: any) => {
         track.stop();
       });
     }
@@ -358,14 +361,15 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
       peerConnection.current.close();
     }
     
+    localStreamRef.current = null;
     setLocalStream(null);
     setRemoteStream(null);
   };
 
   // Basculer le microphone
   const toggleMute = () => {
-    if (localStream) {
-      const audioTracks = localStream.getAudioTracks();
+    if (localStreamRef.current) {
+      const audioTracks = localStreamRef.current.getAudioTracks();
       for (const track of audioTracks) {
         track.enabled = !track.enabled;
       }
@@ -373,23 +377,54 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
     }
   };
 
-  // Basculer la caméra
-  const toggleVideo = () => {
-    if (localStream) {
-      const videoTracks = localStream.getVideoTracks();
-      for (const track of videoTracks) {
-        track.enabled = !track.enabled;
+  // Basculer la caméra - Version améliorée pour Android
+  const toggleVideo = async () => {
+    if (localStreamRef.current) {
+      const videoTracks = localStreamRef.current.getVideoTracks();
+      
+      if (isVideoEnabled) {
+        // Désactiver la vidéo
+        for (const track of videoTracks) {
+          track.enabled = false;
+        }
+        setIsVideoEnabled(false);
+      } else {
+        // Réactiver la vidéo
+        for (const track of videoTracks) {
+          track.enabled = true;
+        }
+        setIsVideoEnabled(true);
+        
+        // Sur Android, forcer le rendu après réactivation
+        if (Platform.OS === 'android') {
+          setTimeout(() => {
+            setLocalVideoKey(prev => prev + 1);
+          }, 100);
+        }
       }
-      setIsVideoEnabled(!isVideoEnabled);
     }
   };
 
-  // Changer de caméra (avant/arrière)
-  const switchCamera = () => {
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack._switchCamera();
+  // Changer de caméra (avant/arrière) - Version améliorée
+  const switchCamera = async () => {
+    if (localStreamRef.current) {
+      try {
+        const videoTrack = localStreamRef.current.getVideoTracks()[0];
+        if (videoTrack) {
+          // Méthode pour React Native WebRTC
+          if (videoTrack._switchCamera) {
+            await videoTrack._switchCamera();
+          }
+          
+          // Sur Android, forcer le rendu après changement de caméra
+          if (Platform.OS === 'android') {
+            setTimeout(() => {
+              setLocalVideoKey(prev => prev + 1);
+            }, 200);
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors du changement de caméra:', error);
       }
     }
   };
@@ -432,13 +467,15 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
             </View>
           )}
           
-          {/* Flux vidéo local (petit écran) */}
+          {/* Flux vidéo local (petit écran) - avec key pour forcer le rendu */}
           {localStream && (
             <RTCView
+              key={`local-video-${localVideoKey}`} // Force le rendu avec une clé unique
               streamURL={localStream.toURL()}
               style={styles.localVideo}
               objectFit="cover"
               zOrder={1}
+              mirror={true} // Effet miroir pour la vidéo locale
             />
           )}
           
@@ -493,6 +530,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ navigation, route }) => {
   );
 };
 
+// Styles restent identiques
 const styles = StyleSheet.create({
   container: {
     flex: 1,

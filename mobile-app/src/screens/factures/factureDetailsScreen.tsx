@@ -8,17 +8,7 @@ import UserInitials from "../../components/elements/users/UserInitials";
 
 type FactureDetailsScreenProps = RouteProp<RootStackParamList, 'FactureDetailsScreen'>;
 
-const formatDateString = (dateString: string | Date, format?: Intl.DateTimeFormatOptions): string => {
-    const date = typeof dateString === "string" ? new Date(dateString) : dateString;
-    return date.toLocaleDateString('fr-FR', {
-        ...(format ? format : {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-        })
-    });
-};
+
 
 // Fonction pour formater les dates Firebase
 const formatFirebaseDate = (timestamp: any, format?: Intl.DateTimeFormatOptions): string => {

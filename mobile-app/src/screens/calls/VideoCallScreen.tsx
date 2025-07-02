@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Alert, BackHandler, Text, View } from 'react-native';
+import { Alert, BackHandler, Text, View, Platform } from 'react-native';
 
 import {
     RTCPeerConnection,
@@ -61,6 +61,12 @@ export default function VideoCallScreen() {
     const [callStartTime, setCallStartTime] = useState<Date | null>(null);
     const [bothUsersConnected, setBothUsersConnected] = useState(false);
     const [elapsedTime, setElapsedTime] = useState<string>("00:00");
+
+    // Timer dégressif basé sur la fin du créneau
+    const appointment = appointmentEtUser.appointment;
+    const startMillis = appointment.dateTime.toDate().getTime();
+    const endMillis = startMillis + appointment.duration * 60000;
+    const [timeLeft, setTimeLeft] = useState(Math.max(0, Math.floor((endMillis - Date.now()) / 1000)));
 
     const callStarted = useRef(false);
     const cachedLocalPCRef = useRef<RTCPeerConnection | null>(null);
@@ -444,8 +450,31 @@ export default function VideoCallScreen() {
         });
     };
 
+    // Patch : forcer le refresh du flux local sur Android après la connexion
+    useEffect(() => {
+        if (Platform.OS === 'android' && remoteStream && localStream) {
+            console.log('Patch Android : refresh localStream après connexion');
+            setLocalStream(null);
+            setTimeout(() => {
+                setLocalStream(localStream);
+            }, 150);
+        }
+    }, [remoteStream]);
+
+    useEffect(() => {
+        if (timeLeft <= 0) return;
+        const interval = setInterval(() => {
+            setTimeLeft(prev => Math.max(0, prev - 1));
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [timeLeft]);
+
+  
+
     return (
         <View className="flex-1">
+            
+
             {remoteStream ? (
                 <RTCView
                     className="flex-1"
@@ -460,6 +489,7 @@ export default function VideoCallScreen() {
                 </View>
             )}
 
+            {/* Toujours afficher le flux local dans un RTCView séparé */}
             {localStream && !isOffCam && (
                 <View className="absolute right-3 top-14 rounded-[20px] m-0 p-0 overflow-hidden w-[117] h-[165] bg-accent border-[4px] border-accent">
                     <RTCView
@@ -481,7 +511,8 @@ export default function VideoCallScreen() {
                     isCameraOn={!isOffCam}
                     endCall={endCall}
                     appointmentEtUser={appointmentEtUser}
-                    elapsedTime={elapsedTime}
+                    timeLeft={timeLeft}
+         
 
                 />
             </View>
