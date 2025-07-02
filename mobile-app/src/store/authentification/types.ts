@@ -58,7 +58,8 @@ export interface User {
     isAuthenticated: boolean;
     tempUserData: any | null; // Données temporaires pour l'authentification sociale
     lastLoginTime: number | null;
-
+    isFcmTokenStored: boolean;
+    fcmToken: string | null;
   }
   
   // Interfaces pour les payloads des actions

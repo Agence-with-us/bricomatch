@@ -1,29 +1,36 @@
 import { useEffect, useState } from 'react';
 import NotificationService from '../services/notificationService';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store/store';
+import { storeFcmToken } from '../store/authentification/reducer';
 
 export const useNotifications = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const [token, setToken] = useState<string | null>(null);
-  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth); // Adaptez selon votre contexte
-
+  const { user, isAuthenticated, fcmToken, isFcmTokenStored } = useSelector((state: RootState) => state.auth); // Adaptez selon votre contexte
+  const dispatch = useDispatch();
   useEffect(() => {
     let isMounted = true;
 
     const initializeNotifications = async () => {
       if (isAuthenticated && user?.id && !isInitialized) {
         try {
-          
+
           const success = await NotificationService.initialize(user.id);
-          
+
           if (isMounted) {
             setIsInitialized(success);
             setHasPermission(success);
-            
-            if (success) {
+
+            if (success && !isFcmTokenStored) {
               const currentToken = NotificationService.getCurrentToken();
+              if (currentToken) {
+                await NotificationService.saveTokenToFirestore(currentToken);
+                dispatch(storeFcmToken(currentToken));
+              }
+
+
               setToken(currentToken);
             }
           }
@@ -41,7 +48,7 @@ export const useNotifications = () => {
       if (!isAuthenticated && isInitialized) {
         try {
           await NotificationService.removeCurrentToken();
-          
+
           if (isMounted) {
             setIsInitialized(false);
             setHasPermission(false);
@@ -69,12 +76,12 @@ export const useNotifications = () => {
       const success = await NotificationService.initialize(user.id);
       setIsInitialized(success);
       setHasPermission(success);
-      
+
       if (success) {
         const currentToken = NotificationService.getCurrentToken();
         setToken(currentToken);
       }
-      
+
       return success;
     }
     return false;

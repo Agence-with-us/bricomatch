@@ -61,12 +61,7 @@ class NotificationService {
         return false;
       }
 
-      // IMPORTANT : Nettoyer les anciens tokens AVANT d'ajouter le nouveau
-      await this.cleanupOldTokens(token);
-
-      // Sauvegarder le token en Firestore
-      await this.saveTokenToFirestore(token);
-
+   
       // Configurer les listeners
       this.setupNotificationListeners();
 
