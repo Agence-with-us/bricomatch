@@ -11,6 +11,8 @@ async function getAuthToken(): Promise<string | null> {
   return auth.currentUser ? await auth.currentUser.getIdToken() : null;
 }
 
+const apiUrl = Constants.expoConfig?.extra?.apiUrl;
+console.log('apiUrl', apiUrl);
 
 const axiosInstance = axios.create({
   baseURL: Constants.expoConfig?.extra?.apiUrl,

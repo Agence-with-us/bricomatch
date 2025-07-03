@@ -138,3 +138,12 @@ export enum NotificationType {
   PAYOUT_ERROR = 'PAYOUT_ERROR',
   GENERAL = 'GENERAL'
 }
+
+
+
+
+export enum PushNotificationsActionsEnum {
+  default_action = 'default_action',
+  view_appointment = 'view_appointment',
+  view_chat = 'view_chat',
+}

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import notificationPushService from '../services/notificationPushService';
+import { PushNotificationsActionsEnum } from '../types';
 
 export const sendChatMessageNotificationController = async (req: Request, res: Response) => {
   try {
@@ -13,8 +14,8 @@ export const sendChatMessageNotificationController = async (req: Request, res: R
         title: "💬 Nouveau message",
         body: `${senderName} : ${message}`,
         type: "chat_message",
-        action: "view_chat",
-        additionalData: {
+        data: {
+          action: PushNotificationsActionsEnum.view_chat,
           chatId: chatId,
         },
       }

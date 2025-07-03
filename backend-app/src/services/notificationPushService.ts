@@ -1,15 +1,14 @@
 // services/notificationService.ts
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
-import { Appointment, UserRole } from '../types';
+import { Appointment, PushNotificationsActionsEnum, UserRole } from '../types';
 
 // Types pour la notification générique
 interface GenericNotificationData {
   title: string;
   body: string;
   type: string;
-  action?: string;
-  additionalData?: Record<string, any>;
+  data?: Record<string, any>;
 }
 
 interface GenericNotificationOptions {
@@ -111,14 +110,7 @@ class ServerNotificationPushService {
           title: notification.title,
           body: notification.body,
         },
-        data: notification.additionalData || {},
-        android: {
-          priority: options.priority || 'high' as const,
-          notification: {
-            sound: options.sound || 'default',
-            clickAction: options.clickAction,
-          },
-        },
+        data: notification.data || {},
         apns: {
           payload: {
             aps: {
@@ -218,14 +210,13 @@ class ServerNotificationPushService {
       title: notificationData.title,
       body: notificationData.body,
       type: notificationData.type,
-      action: notificationData.action || 'default_action',
-      additionalData: notificationData.additionalData,
+      data: notificationData.data,
     };
 
     const notificationOptions: GenericNotificationOptions = {
-      priority: options.priority || 'high',
+      priority: 'high',
       sound: options.sound || 'default',
-      clickAction: options.clickAction || 'DEFAULT_ACTION',
+      clickAction: options.clickAction || PushNotificationsActionsEnum.default_action,
       badge: options.badge,
       icon: options.icon,
       image: options.image,
@@ -244,9 +235,9 @@ class ServerNotificationPushService {
   ): Promise<void> {
     const baseNotificationData = {
       type: "appointment_cancelled" as const,
-      action: "view_appointment" as const,
-      additionalData: {
+      data: {
         appointmentId: appointment.id,
+        action: PushNotificationsActionsEnum.view_appointment
       },
     };
 
@@ -373,8 +364,9 @@ class ServerNotificationPushService {
       title: '⏰ RDV dans 15 min',
       body: `Votre rdv avec ${proName} est dans 15 min, prévenez votre pro ou annulez si vous n'êtes plus disponible.`,
       type: 'appointment_reminder_15min',
-      action: 'reminder_15min',
-      additionalData: { date, time }
+      data: {
+        action: PushNotificationsActionsEnum.view_appointment
+      }
     });
   }
 
@@ -386,8 +378,9 @@ class ServerNotificationPushService {
       title: '⏰ RDV dans 5 min',
       body: `Votre rdv va commencer, avez-vous rempli le brief ?`,
       type: 'appointment_reminder_5min',
-      action: 'reminder_5min',
-      additionalData: { date, time }
+      data: {
+        action: PushNotificationsActionsEnum.view_appointment
+      }
     });
   }
 
@@ -399,8 +392,9 @@ class ServerNotificationPushService {
       title: '🚀 Connectez-vous à la visio !',
       body: `Connectez-vous à votre visio dans 2min !`,
       type: 'appointment_reminder_2min',
-      action: 'reminder_2min',
-      additionalData: { date, time }
+      data: {
+        action: PushNotificationsActionsEnum.view_appointment
+      }
     });
   }
 
@@ -412,8 +406,9 @@ class ServerNotificationPushService {
       title: '⏳ Fin de visio dans 5 min',
       body: 'Votre visio se termine dans 5 min, reprenez rdv si vous avez besoin de plus de temps !',
       type: 'appointment_ending_soon',
-      action: 'ending_soon',
-      additionalData: { date, time }
+      data: {
+        action: PushNotificationsActionsEnum.view_appointment
+      }
     });
   }
 
@@ -425,8 +420,9 @@ class ServerNotificationPushService {
       title: '⏰ RDV dans 2 jours',
       body: `N'oubliez pas votre rdv avec ${otherName} (${service}) dans 2 jours, pensez à annuler si vous n'êtes plus disponible.`,
       type: 'appointment_2days_reminder',
-      action: 'reminder_2days',
-      additionalData: { date, time, isForPro: isForPro ? '1' : '0' }
+      data: {
+        action: PushNotificationsActionsEnum.view_appointment
+      }
     });
   }
 }

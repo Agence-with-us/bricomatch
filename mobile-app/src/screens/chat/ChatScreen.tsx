@@ -326,13 +326,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
     }
   };
 
-  const handleBackPress = () => {
-    if (onClose) {
-      onClose();
-    } else {
-      navigation.goBack();
-    }
-  };
+ 
 
 
 

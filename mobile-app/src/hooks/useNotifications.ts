@@ -8,7 +8,7 @@ export const useNotifications = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const [token, setToken] = useState<string | null>(null);
-  const { user, isAuthenticated, fcmToken, isFcmTokenStored } = useSelector((state: RootState) => state.auth); // Adaptez selon votre contexte
+  const { user, isAuthenticated, isFcmTokenStored } = useSelector((state: RootState) => state.auth); // Adaptez selon votre contexte
   const dispatch = useDispatch();
   useEffect(() => {
     let isMounted = true;

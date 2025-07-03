@@ -9,7 +9,7 @@ import {
   evaluerAppointmentService
 } from '../services/appointmentService';
 import { AuthRequest } from '../middleware/auth';
-import { Appointment, AppointmentStatus, UserRole } from '../types';
+import { Appointment, AppointmentStatus, PushNotificationsActionsEnum, UserRole } from '../types';
 import { createPaymentIntent } from '../services/paymentService';
 import { getUserById, getUserDetails } from '../services/userService';
 import { generateInvoice } from '../services/invoiceService';
@@ -143,8 +143,8 @@ export const confirmAppointment = async (req: AuthRequest, res: Response, next: 
         title: "📆 Votre rendez-vous a été confirmé !",
         body: `Votre rendez-vous avec ${userDetails?.prenom} ${userDetails?.nom} le ${appointment.dateTime.toDate().toLocaleDateString('fr-FR')} à ${appointment.timeSlot} a été confirmé.`,
         type: "appointment_confirmed",
-        action: "view_appointment",
-        additionalData: {
+        data: {
+          action: PushNotificationsActionsEnum.view_appointment,
           appointmentId: appointment.id,
         },
       }
@@ -225,8 +225,8 @@ export const autoriserPaiementAppointment = async (req: AuthRequest, res: Respon
         title: "📆 Votre créneau a été réservé !",
         body: `Bonjour ${clientDetails?.prenom} , votre créneau le ${appointment.dateTime.toDate().toLocaleDateString('fr-FR')} à ${appointment.timeSlot} a été réservé. Vous recevrez une notification quand le pro confirmera la réservation.`,
         type: "reservation_confirmation",
-        action: "view_appointment",
-        additionalData: {
+        data: {
+          action: PushNotificationsActionsEnum.view_appointment,
           appointmentId: appointment.id,
         },
       }
@@ -240,8 +240,8 @@ export const autoriserPaiementAppointment = async (req: AuthRequest, res: Respon
         title: "📆 Un nouveau rendez-vous a été réservé !",
         body: `Un nouveau rendez-vous a été réservé le ${appointment.dateTime.toDate().toLocaleDateString('fr-FR')} à ${appointment.timeSlot} par ${clientDetails?.prenom} ${clientDetails?.nom}.`,
         type: "new_appointment_reservation",
-        action: "view_appointment",
-        additionalData: {
+        data: {
+          action: PushNotificationsActionsEnum.view_appointment,
           appointmentId: appointment.id,
         },
       }
