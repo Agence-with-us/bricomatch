@@ -289,7 +289,7 @@ class ServerNotificationPushService {
         } else if (initiatedBy === UserRole.PARTICULIER) {
           return {
             proNotification: {
-              title: "❌ Rendez‑vous refusé",
+              title: "❌ Rendez‑vous annulé",
               body: `Le client a annulé son rendez‑vous du ${appointmentDate} à ${appointmentTime}.`,
             }
           };

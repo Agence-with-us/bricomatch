@@ -3,7 +3,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 import { navigationRef, setNavigationReady } from "../services/navigationService";
 import { useSelector, useDispatch } from 'react-redux';
-import { StatusBar, View } from 'react-native';
+import { Platform, StatusBar, View } from 'react-native';
 
 // Écrans d'authentification
 import LoginScreen from "../screens/authentification/LoginScreen";
@@ -145,12 +145,13 @@ const AppNavigator = () => {
 
 
     return (
-        <View style={{ flex: 1 }}>
+        <View className='flex-1 bg-transparent'  >
             {/* Configuration de la barre de statut */}
             <StatusBar
                 barStyle="dark-content"
-                backgroundColor="transparent"
+                backgroundColor={Platform.OS === 'android' ? "transparent" : "transparent"}
                 translucent={true}
+                animated={true}
             />
 
             <NavigationContainer ref={navigationRef} onReady={() => setNavigationReady()}>

@@ -107,8 +107,14 @@ const AppointmentCardItem: React.FC<AppointmentCardItemProps> = ({
                         iconName: "hourglass-outline" as const,
                         iconColor: "#FF9800"
                     };
+                }else{
+                    return {
+                        message: "Le professionnel a demandé l'annulation de ce rendez-vous. En attente de validation par un administrateur",
+                        messageStyle: styles.pendingMessage,
+                        iconName: "hourglass-outline" as const,
+                        iconColor: "#FF9800"
+                    };
                 }
-                return null;
 
             default:
                 return null;

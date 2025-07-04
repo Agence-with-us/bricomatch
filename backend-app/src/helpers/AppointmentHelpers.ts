@@ -27,7 +27,7 @@ export const handlePaymentAuthorizedCancellation = async (
   appointment: Appointment, 
   initiatedBy: UserRole
 ): Promise<Appointment> => {
-  const newStatus = AppointmentStatus.CANCELLED_BY_PRO;
+  const newStatus = initiatedBy === UserRole.PRO ? AppointmentStatus.CANCELLED_BY_PRO : AppointmentStatus.CANCELLED_BY_CLIENT;
   const message = "Rendez‑vous annulé par le professionnel (paiement non capturé).";
 
   if (initiatedBy !== UserRole.PRO && initiatedBy !== UserRole.PARTICULIER) {

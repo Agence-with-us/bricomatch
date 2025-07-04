@@ -25,7 +25,7 @@ export default function App() {
       >
         <AppInitializer />
         <StripeProvider publishableKey={Constants.expoConfig?.extra?.stripePublishableKey}>
-          <SafeAreaView style={styles.container}>
+          <SafeAreaView className='flex-1 bg-transparent'>
             <AppNavigator />
             <Toast
               config={{

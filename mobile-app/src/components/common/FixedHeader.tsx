@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import GoBack from '../common/GoBack'; // Ajustez le chemin selon votre structure
 import { navigate, navigationRef } from '../../services/navigationService';
 
@@ -37,7 +37,7 @@ const FixedHeader: React.FC<FixedHeaderProps> = ({
     }
   });
   return (
-    <View className={`pt-12 px-2.5 bg-white ${customClasses}`}>
+    <View className={`${Platform.OS === 'android' ? 'pt-10' : 'pt-3'} px-2.5 bg-white ${customClasses}`}>
       <View className="w-full flex-row justify-between items-center mb-5">
         {showBackButton ? <GoBack onGoBack={handleBack} /> : <View />}
         <Text className="text-muted text-xl font-bold flex-1 text-center">

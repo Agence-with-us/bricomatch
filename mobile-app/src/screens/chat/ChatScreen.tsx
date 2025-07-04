@@ -334,41 +334,42 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
     const isCurrentUser = item.senderId === currentUser?.id;
 
     return (
-      <View style={[
-        styles.messageContainer,
-        isCurrentUser ? styles.userMessageContainer : styles.otherMessageContainer
-      ]}>
+      <View className={`my-1 max-w-[90%] ${
+        isCurrentUser ? 'self-end items-end' : 'self-start items-start'
+      }`}>
         {item.imageUrl && (
           <TouchableOpacity
-            style={styles.imageContainer}
+            className="rounded-lg overflow-hidden mb-1"
             onPress={() => {
             }}
           >
-            <Image source={{ uri: item.imageUrl }} style={styles.messageImage} />
+            <Image 
+              source={{ uri: item.imageUrl }} 
+              className="w-48 h-48 bg-gray-300" 
+            />
           </TouchableOpacity>
         )}
 
         {item.text && (
-          <View style={[
-            styles.textBubble,
-            isCurrentUser ? styles.userTextBubble : styles.otherTextBubble
-          ]}>
-            <Text style={[
-              styles.messageText,
-              isCurrentUser ? styles.userMessageText : styles.otherMessageText
-            ]}>
+          <View className={`rounded-2xl p-3 max-w-full ${
+            isCurrentUser 
+              ? 'bg-orange-500 rounded-br-none' 
+              : 'bg-gray-200 rounded-bl-none'
+          }`}>
+            <Text className={`text-base ${
+              isCurrentUser ? 'text-white' : 'text-black'
+            }`}>
               {item.text}
             </Text>
           </View>
         )}
 
-        <Text style={[
-          styles.timestamp,
-          isCurrentUser ? styles.userTimestamp : styles.otherTimestamp
-        ]}>
+        <Text className={`text-xs mt-1 opacity-70 ${
+          isCurrentUser ? 'text-gray-600 self-end' : 'text-gray-600'
+        }`}>
           {formatFullDateTimeFromTimeStamp(item.timestamp)}
           {isCurrentUser && item.read && (
-            <Ionicons name="checkmark-done" size={12} color="#0084FF" style={styles.readIcon} />
+            <Ionicons name="checkmark-done" size={12} color="#0084FF" className="ml-1" />
           )}
         </Text>
       </View>
@@ -379,54 +380,56 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, containerStyle]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      className={` bg-white flex-1 ${isModalMode && Platform.OS === 'ios' ? 'mb-5' : ''}`}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? (isModalMode ? 120 : 40) : 0}
     >
-      {!isModalMode && <View style={styles.header}>
-        <GoBack />
+      {!isModalMode && (
+        <View className={`${Platform.OS === 'android' ? 'mt-8' : 'mt-0'} flex-row items-center bg-white py-3 px-4 border-b border-gray-200`}>
+          <GoBack />
 
-        <View style={styles.headerInfo}>
-          {otherUser && (
-            <>
-              {
-                otherUser.photoUrl ? <Image
-                  src={otherUser.photoUrl}
-                  style={styles.headerAvatar}
-                /> :
+          <View className="flex-1 flex-row items-center ml-6">
+            {otherUser && (
+              <>
+                {otherUser.photoUrl ? (
+                  <Image
+                    src={otherUser.photoUrl}
+                    className="w-10 h-10 rounded-full mr-3"
+                  />
+                ) : (
                   <UserInitials nom={otherUser.nom} prenom={otherUser.prenom} />
-              }
-              <View className='ml-2'>
-                <Text style={styles.headerTitle}>
-                  {otherUser.prenom} {otherUser.nom}
-                </Text>
-                <Text style={styles.headerSubtitle}>
-                  En ligne
-                </Text>
-              </View>
-            </>
-          )}
-        </View>
+                )}
+                <View className="ml-2">
+                  <Text className="text-base font-semibold">
+                    {otherUser.prenom} {otherUser.nom}
+                  </Text>
+                  <Text className="text-xs text-gray-600">
+                    En ligne
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
 
-        <View style={styles.headerRight} />
-      </View>
-      }
+          <View className="w-10" />
+        </View>
+      )}
 
       <FlatList
+        style={{ paddingHorizontal: 10, paddingBottom: 10 }}
         ref={flatListRef}
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderMessageItem}
-        contentContainerStyle={styles.messagesContainer}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
 
       {selectedImage && (
-        <View style={styles.selectedImageContainer}>
-          <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
+        <View className="m-2 rounded-lg overflow-hidden relative self-start">
+          <Image source={{ uri: selectedImage }} className="w-24 h-24 rounded-lg" />
           <TouchableOpacity
-            style={styles.removeImageButton}
+            className="absolute -top-1 -right-1 bg-white rounded-full"
             onPress={() => setSelectedImage(null)}
           >
             <Ionicons name="close-circle" size={24} color="#FF3B30" />
@@ -434,9 +437,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
         </View>
       )}
 
-      <View style={styles.inputContainer}>
+      <View className="mx-5 mb-5 mt-5 border border-gray-300 rounded-full flex-row items-center bg-white py-1 px-5 border-t">
         <TouchableOpacity
-          style={styles.imageButton}
+          className="p-2"
           onPress={pickImage}
           disabled={isUploading}
         >
@@ -444,19 +447,17 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
         </TouchableOpacity>
 
         <TextInput
-          style={styles.input}
+          className="flex-1 px-4 py-2 mx-2 bg-white max-h-24"
           value={newMessage}
           onChangeText={setNewMessage}
           placeholder="Écrire un message"
           multiline
-          maxHeight={100}
         />
 
         <TouchableOpacity
-          style={[
-            styles.sendButton,
-            (!newMessage.trim() && !selectedImage) || isUploading ? styles.sendButtonDisabled : {}
-          ]}
+          className={`bg-[#F95200] rounded-full w-10 h-10 justify-center items-center ${
+            (!newMessage.trim() && !selectedImage) || isUploading ? 'bg-gray-400' : ''
+          }`}
           onPress={sendMessage}
           disabled={(!newMessage.trim() && !selectedImage) || isUploading}
         >
@@ -466,181 +467,16 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
             <Ionicons name="send" size={20} color="#FFFFFF" />
           )}
         </TouchableOpacity>
+        
         <LogoSpinner
           visible={isLoading}
           message="Messages en cours..."
           rotationDuration={1500}
-
         />
       </View>
     </KeyboardAvoidingView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    marginTop: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 25,
-  },
-  headerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#666666',
-  },
-  headerRight: {
-    width: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  messagesContainer: {
-    padding: 16,
-    paddingBottom: 24,
-  },
-  messageContainer: {
-    marginVertical: 6,
-    maxWidth: '80%',
-  },
-  userMessageContainer: {
-    alignSelf: 'flex-end',
-    alignItems: 'flex-end',
-  },
-  otherMessageContainer: {
-    alignSelf: 'flex-start',
-    alignItems: 'flex-start',
-  },
-  textBubble: {
-    borderRadius: 18,
-    padding: 10,
-    maxWidth: '100%',
-  },
-  userTextBubble: {
-    backgroundColor: '#F95200',
-    borderBottomRightRadius: 0,
-  },
-  otherTextBubble: {
-    backgroundColor: '#EBEDEF',
-    borderBottomLeftRadius: 0,
-  },
-  messageText: {
-    fontSize: 16,
-  },
-  userMessageText: {
-    color: '#FFFFFF',
-  },
-  otherMessageText: {
-    color: '#000000',
-  },
-  timestamp: {
-    fontSize: 10,
-    marginTop: 4,
-    opacity: 0.7,
-  },
-  userTimestamp: {
-    color: '#666666',
-    alignSelf: 'flex-end',
-  },
-  otherTimestamp: {
-    color: '#666666',
-  },
-  readIcon: {
-    marginLeft: 4,
-  },
-  imageContainer: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 4,
-  },
-  messageImage: {
-    width: 200,
-    height: 200,
-    backgroundColor: '#E0E0E0',
-  },
-  selectedImageContainer: {
-    margin: 8,
-    borderRadius: 8,
-    overflow: 'hidden',
-    position: 'relative',
-    alignSelf: 'flex-start',
-  },
-  selectedImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-  },
-  removeImageButton: {
-    position: 'absolute',
-    top: -5,
-    right: -5,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-  },
-  inputContainer: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: '#DDDDDD',
-    borderRadius: 50,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#Fff',
-    paddingVertical: 4,
-    paddingHorizontal: 20,
-    borderTopWidth: 1,
-  },
-  imageButton: {
-    padding: 10,
-  },
-  input: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginHorizontal: 8,
-    backgroundColor: '#FFFFFF',
-    maxHeight: 100,
-  },
-  sendButton: {
-    backgroundColor: '#F95200',
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButtonDisabled: {
-    backgroundColor: '#C7C7CC',
-  },
-});
 
 export default ChatScreen;

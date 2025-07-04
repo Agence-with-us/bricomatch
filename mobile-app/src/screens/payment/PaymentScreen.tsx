@@ -23,6 +23,7 @@ import axiosInstance from '../../config/axiosInstance';
 import { goBack, reset } from '../../services/navigationService';
 import { StripeError } from '../../types/StripeError';
 import { getStripeErrorMessage } from '../../utils/stripeErrorHandler';
+import { KeyboardAvoidingView } from 'react-native';
 
 export default function PaymentScreen() {
     const route = useRoute<RouteProp<RootStackParamList, 'Payment'>>();
@@ -176,7 +177,7 @@ export default function PaymentScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             {/* Timer fixe */}
             <View style={[styles.timerContainer, { backgroundColor: getTimerColor() }]}>
                 <View style={styles.timerContent}>
@@ -346,7 +347,7 @@ export default function PaymentScreen() {
                     </Text>
                 </View>
             </ScrollView>
-        </SafeAreaView>
+        </KeyboardAvoidingView>
     );
 }
 

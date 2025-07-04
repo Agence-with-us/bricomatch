@@ -168,6 +168,8 @@ export const cancelAppointmentAdvancedService = async (
       case AppointmentStatus.CONFIRMED:
         updatedAppointment = await handleConfirmedCancellation(appointment, initiatedBy);
         break;
+      case AppointmentStatus.CANCELLED_BY_PRO_PENDING:
+        throw new ClientError("Le professionnel a déjà demandé l'annulation de ce rendez-vous. Veuillez contacter l'administrateur pour plus d'informations.", 400);
       default:
         throw new ClientError(
           `Impossible d'annuler un rendez‑vous avec le statut : ${appointment.status}`,
