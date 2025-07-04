@@ -35,7 +35,7 @@ export default function UsersPage() {
   const { filteredUsers, loading, searchTerm, hasMore, didFetch, error } =
     useSelector((state: RootState) => state.users);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-
+  const [sortRole, setSortRole] = useState("all");
   useEffect(() => {
     if (!didFetch) {
       dispatch(fetchUsers());
@@ -74,7 +74,14 @@ export default function UsersPage() {
         });
     }
   };
-
+  const sortedUsers =
+    sortRole === "all"
+      ? filteredUsers
+      : filteredUsers.filter((user) =>
+        sortRole === "professional"
+          ? user.type === "professional"
+          : user.type !== "professional"
+      );
   return (
     <DashboardLayout>
       <div className="flex items-center justify-between mb-6">
@@ -93,9 +100,8 @@ export default function UsersPage() {
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div
-              className={`relative flex-1 transition-all duration-200 ${
-                isSearchFocused ? "md:flex-[0_0_60%]" : ""
-              }`}
+              className={`relative flex-1 transition-all duration-200 ${isSearchFocused ? "md:flex-[0_0_60%]" : ""
+                }`}
             >
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -107,7 +113,21 @@ export default function UsersPage() {
                 onBlur={() => setIsSearchFocused(false)}
               />
             </div>
-
+            <div className="flex gap-2">
+              <label htmlFor="sort-role" className="text-sm font-medium flex items-center">
+                Trier par rôle :
+                <select
+                  id="sort-role"
+                  className="ml-2 border rounded px-2 py-2 text-sm"
+                  value={sortRole}
+                  onChange={(e) => setSortRole(e.target.value)}
+                >
+                  <option value="all">Tous</option>
+                  <option value="professional">Professionnel</option>
+                  <option value="particular">Particulier</option>
+                </select>
+              </label>
+            </div>
             <Button variant="outline" size="icon" onClick={refreshData}>
               <RefreshCw className="h-4 w-4" />
             </Button>
@@ -119,7 +139,7 @@ export default function UsersPage() {
                 <TableRow>
                   <TableHead>Nom</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead>Rôle</TableHead>
                   <TableHead>Date d'inscription</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -152,7 +172,7 @@ export default function UsersPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers.map((user) => (
+                  sortedUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="flex items-center gap-3">
                         {user.photoUrl ? (
@@ -174,10 +194,14 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
-                        <Badge>
-                          {user.type === "professional"
-                            ? "Professionnel"
-                            : "Particulier"}
+                        <Badge
+                          className={
+                            user.type === "professional"
+                              ? "bg-blue-600 text-white"
+                              : "bg-green-700 text-white"
+                          }
+                        >
+                          {user.type === "professional" ? "Professionnel" : "Particulier"}
                         </Badge>
                       </TableCell>
                       <TableCell>

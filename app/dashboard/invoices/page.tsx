@@ -42,7 +42,7 @@ export default function InvoicesPage() {
   const { invoices, loading, error, hasMore } = useSelector(
     (state: RootState) => state.invoices
   );
-
+  const [appointments, setAppointments] = useState<Record<string, any>>({});
   const [users, setUsers] = useState<Record<string, UserInfo>>({});
 
   useEffect(() => {
@@ -77,11 +77,28 @@ export default function InvoicesPage() {
       console.error("Erreur récupération utilisateur", err);
     }
   };
-
+  const fetchAppointment = async (appointmentId: string) => {
+    if (!appointmentId || appointments[appointmentId]) return;
+    try {
+      const appointmentRef = doc(db, "appointments", appointmentId);
+      const appointmentSnap = await getDoc(appointmentRef);
+      if (appointmentSnap.exists()) {
+        setAppointments((prev) => ({
+          ...prev,
+          [appointmentId]: { id: appointmentId, ...appointmentSnap.data() },
+        }));
+      }
+    } catch (err) {
+      console.error("Erreur récupération appointment", err);
+    }
+  };
   useEffect(() => {
     invoices.forEach((invoice) => {
       if (invoice.userId && !users[invoice.userId]) {
         fetchUser(invoice.userId);
+      }
+      if (invoice.appointmentId && !appointments[invoice.appointmentId]) {
+        fetchAppointment(invoice.appointmentId);
       }
     });
   }, [invoices]);
@@ -111,10 +128,10 @@ export default function InvoicesPage() {
                   <TableHead>Facture</TableHead>
                   <TableHead>Utilisateur</TableHead>
                   <TableHead>Rôle</TableHead>
-                  <TableHead>Montant</TableHead>
+                  <TableHead>Montant HT</TableHead>
                   <TableHead>TVA</TableHead>
                   <TableHead>Frais Plateforme</TableHead>
-                  <TableHead>Total</TableHead>
+                  <TableHead>Total TTC</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>PDF</TableHead>
                 </TableRow>
@@ -142,52 +159,65 @@ export default function InvoicesPage() {
                       <TableCell>{invoice.invoiceNumber}</TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          {" "}
                           {users[invoice.userId] ? (
                             <>
                               <span className="font-medium">
-                                {users[invoice.userId].nom || "Nom inconnu"}{" "}
-                                {users[invoice.userId].prenom || "Nom inconnu"}
+                                {users[invoice.userId].nom || "Nom inconnu"} {users[invoice.userId].prenom || "Nom inconnu"}
                               </span>
                               <span className="text-xs text-gray-500">
                                 {users[invoice.userId].email}
                               </span>
                             </>
                           ) : (
-                            <span className="text-xs text-muted-foreground">
-                              Chargement...
-                            </span>
+                            <span className="text-xs text-muted-foreground">Chargement...</span>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{invoice.userRole}</Badge>
+                        <Badge
+                          className={
+                            invoice.userRole === "PRO"
+                              ? "bg-blue-600 text-white"
+                              : "bg-orange-500 text-white"
+                          }
+                        >
+                          {invoice.userRole === "PRO" ? "Professionnel" : "Particulier"}
+                        </Badge>
                       </TableCell>
-                      <TableCell>{formatCentToEuro(invoice.amount)}</TableCell>
                       <TableCell>
-                        {formatCentToEuro(invoice.vatAmount)}
+                        {appointments[invoice.appointmentId]
+                          ? formatCentToEuro(appointments[invoice.appointmentId].montantHT)
+                          : <span className="text-xs text-muted-foreground">...</span>
+                        }
                       </TableCell>
                       <TableCell>
-                        {formatCentToEuro(invoice.platformFee)}
+                        {appointments[invoice.appointmentId]
+                          ? formatCentToEuro(
+                            appointments[invoice.appointmentId].montantTotal -
+                            appointments[invoice.appointmentId].montantHT
+                          )
+                          : <span className="text-xs text-muted-foreground">...</span>
+                        }
                       </TableCell>
                       <TableCell>
-                        {formatCentToEuro(invoice.totalAmount)}
+                        {formatCentToEuro(invoice.platformFee ?? 0)}
+                      </TableCell>
+                      <TableCell>
+                        {appointments[invoice.appointmentId]
+                          ? formatCentToEuro(appointments[invoice.appointmentId].montantTotal)
+                          : <span className="text-xs text-muted-foreground">...</span>
+                        }
                       </TableCell>
                       <TableCell>
                         {(() => {
                           const rawDate = invoice.createdAt;
-
                           if (!rawDate) return "N/A";
-
-                          // Si c'est un Firebase Timestamp
                           if (typeof rawDate?.toDate === "function") {
                             return rawDate.toDate().toLocaleString("fr-FR");
                           }
-
                           return "Date invalide";
                         })()}
                       </TableCell>
-
                       <TableCell>
                         <a
                           href={invoice.fileUrl}

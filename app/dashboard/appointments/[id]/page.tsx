@@ -38,29 +38,50 @@ export default function AppointmentDetailsPage() {
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [client, setClient] = useState<User | null>(null);
   const [pro, setPro] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
-      const apptSnap = await getDoc(doc(db, "appointments", id as string));
-      if (apptSnap.exists()) {
-        const data = apptSnap.data() as Appointment;
-        setAppointment({ ...data, id: apptSnap.id });
+      setLoading(true);
+      setNotFound(false);
+      try {
+        const apptSnap = await getDoc(doc(db, "appointments", id as string));
+        if (apptSnap.exists()) {
+          const data = apptSnap.data() as Appointment;
+          setAppointment({ ...data, id: apptSnap.id });
 
-        const clientSnap = await getDoc(doc(db, "users", data.clientId));
-        if (clientSnap.exists()) setClient(clientSnap.data() as User);
+          const clientSnap = await getDoc(doc(db, "users", data.clientId));
+          if (clientSnap.exists()) setClient(clientSnap.data() as User);
 
-        const proSnap = await getDoc(doc(db, "users", data.proId));
-        if (proSnap.exists()) setPro(proSnap.data() as User);
+          const proSnap = await getDoc(doc(db, "users", data.proId));
+          if (proSnap.exists()) setPro(proSnap.data() as User);
+        } else {
+          setNotFound(true);
+        }
+      } catch (e) {
+        setNotFound(true);
       }
+      setLoading(false);
     };
 
     if (id) fetchData();
   }, [id]);
 
-  if (!appointment) {
+  if (loading) {
     return (
       <DashboardLayout>
         <p className="text-center mt-10">Chargement du rendez-vous...</p>
+      </DashboardLayout>
+    );
+  }
+
+  if (notFound || !appointment) {
+    return (
+      <DashboardLayout>
+        <p className="text-center mt-10 text-red-500">
+          Rendez-vous introuvable.
+        </p>
       </DashboardLayout>
     );
   }

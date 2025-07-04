@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { signIn } from "@/lib/store/slices/authSlice";
@@ -29,9 +29,12 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { isAuthenticated } = useAuth({ required: false });
 
-  if (isAuthenticated) {
-    router.push("/dashboard");
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, router]);
+
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -55,12 +58,13 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-4">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900">
-              <Building2
-                size={32}
-                className="text-orange-600 dark:text-orange-400"
-              />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Logo Bricomatch"
+              width={48}
+              height={48}
+              className="object-contain"
+            />
           </div>
           <CardTitle className="text-2xl text-center font-bold">
             Bricomatch Admin
@@ -76,7 +80,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@bricomatch.com"
+                placeholder="Saisissez votre email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -90,6 +94,7 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
+                placeholder="Saisissez votre mot de passe"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

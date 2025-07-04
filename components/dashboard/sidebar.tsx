@@ -69,16 +69,26 @@ export function Sidebar({ className }: SidebarProps) {
     <div className="flex flex-col h-full">
       <div className="py-4 px-2">
         <div className="flex items-center px-3 py-2">
-          <Building2 className="h-6 w-6 text-orange-600 dark:text-orange-400 mr-2" />
-          <span className="text-lg font-bold">Bricomatch</span>
+          <img
+            src="/logo.png"
+            alt="Logo Bricomatch"
+            width={32}
+            height={32}
+            className="object-contain"
+          />
+          <span className="text-lg font-bold pl-3">Bricomatch</span>
         </div>
       </div>
 
       <div className="flex-1 overflow-auto py-2">
         <nav className="grid gap-1 px-2">
           {navItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname?.startsWith(`${item.href}/`);
+            let isActive = false;
+            if (item.href === "/dashboard") {
+              isActive = pathname === "/dashboard";
+            } else {
+              isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+            }
             return (
               <Link
                 key={item.href}
@@ -119,7 +129,7 @@ export function Sidebar({ className }: SidebarProps) {
           <span>Déconnexion</span>
         </Button>
       </div>
-    </div>
+    </div >
   );
 
   return (
