@@ -1,5 +1,7 @@
 import { appointmentsCollection, getFirestore, notificationsCollection } from '../config/firebase';
 import admin from 'firebase-admin';
+import fs from 'fs/promises';
+import path from 'path';
 
 
 import { Appointment, AppointmentStatus, UserRole } from '../types';
@@ -393,136 +395,194 @@ export const processAppointmentReminders = async (): Promise<void> => {
     const diffMs = appointmentDate.getTime() - nowDate.getTime();
     const diffMin = Math.round(diffMs / 60000);
 
-    // Récupérer le nom du pro
-    let proName = 'votre professionnel';
+    // Initialiser remindersSent si absent
+    appointment.remindersSent = appointment.remindersSent || {};
+
+    // Récupérer le nom du client
+    let clientName = 'votre client';
     try {
-      const pro = await getUserById(appointment.proId);
-      if (pro) {
-        proName = `${pro.prenom} ${pro.nom}`;
+      const client = await getUserById(appointment.clientId);
+      if (client) {
+        clientName = `${client.prenom} ${client.nom}`;
       }
-    } catch (e) { /* ignore */ }
+      // Récupérer le nom du pro
+      let proName = 'votre professionnel';
+      try {
+        const pro = await getUserById(appointment.proId);
+        if (pro) {
+          proName = `${pro.prenom} ${pro.nom}`;
+        }
+      } catch (e) { /* ignore */ }
 
-    // Rappel 15 minutes avant (entre 14 et 16 minutes)
-    if (diffMin >= 14 && diffMin <= 16) {
-      await notificationPushService.sendAppointmentReminder15min(
-        appointment.clientId,
-        proName,
-        appointmentDate.toLocaleDateString('fr-FR'),
-        appointment.timeSlot || ''
-      );
-    }
+      // Rappel 15 minutes avant (entre 14 et 16 minutes)
+      if (!appointment.remindersSent['15min'] && diffMin === 15) {
+        await notificationPushService.sendAppointmentReminder15min(
+          appointment.clientId,
+          proName,
+          appointmentDate.toLocaleDateString('fr-FR'),
+          appointment.timeSlot || '',
+          false
+        );
+        await notificationPushService.sendAppointmentReminder15min(
+          appointment.proId,
+          clientName,
+          appointmentDate.toLocaleDateString('fr-FR'),
+          appointment.timeSlot || '',
+          true
+        );
+        appointment.remindersSent['15min'] = true;
+        await require('./reminderFileService').updateReminder(appointment);
+      }
 
-    // Rappel 5 minutes avant (entre 4 et 6 minutes)
-    if (diffMin >= 4 && diffMin <= 6) {
-      await notificationPushService.sendAppointmentReminder5min(
-        appointment.clientId,
-        proName,
-        appointmentDate.toLocaleDateString('fr-FR'),
-        appointment.timeSlot || ''
-      );
-    }
+      // Rappel 5 minutes avant (entre 4 et 6 minutes)
+      if (!appointment.remindersSent['5min'] && diffMin === 5) {
+        await notificationPushService.sendAppointmentReminder5min(
+          appointment.clientId,
+          proName,
+          appointmentDate.toLocaleDateString('fr-FR'),
+          appointment.timeSlot || '',
+          false
+        );
+        await notificationPushService.sendAppointmentReminder5min(
+          appointment.proId,
+          clientName,
+          appointmentDate.toLocaleDateString('fr-FR'),
+          appointment.timeSlot || '',
+          true
+        );
+        appointment.remindersSent['5min'] = true;
+        await require('./reminderFileService').updateReminder(appointment);
+      }
 
-    // Rappel 2 minutes avant (entre 1 et 3 minutes)
-    if (diffMin >= 1 && diffMin <= 3) {
-      await notificationPushService.sendAppointmentReminder2min(
-        appointment.clientId,
-        proName,
-        appointmentDate.toLocaleDateString('fr-FR'),
-        appointment.timeSlot || ''
-      );
-    }
-
-    // Notification 5 min avant la fin du RDV (entre 4 et 6 minutes avant la fin)
-    if (appointment.duration) {
-      const endDate = new Date(appointmentDate.getTime() + appointment.duration * 60000);
-      const diffEndMs = endDate.getTime() - nowDate.getTime();
-      const diffEndMin = Math.round(diffEndMs / 60000);
-      if (diffEndMin >= 4 && diffEndMin <= 6) {
-        await notificationPushService.sendAppointmentEndingSoon(
+      // Rappel 2 minutes avant (entre 1 et 3 minutes)
+      if (!appointment.remindersSent['2min'] && diffMin === 2) {
+        await notificationPushService.sendAppointmentReminder2min(
           appointment.clientId,
           proName,
           appointmentDate.toLocaleDateString('fr-FR'),
           appointment.timeSlot || ''
         );
+        await notificationPushService.sendAppointmentReminder2min(
+          appointment.proId,
+          clientName,
+          appointmentDate.toLocaleDateString('fr-FR'),
+          appointment.timeSlot || '',
+        );
+        appointment.remindersSent['2min'] = true;
+        await require('./reminderFileService').updateReminder(appointment);
       }
-    }
 
-    // Rappel 2 jours avant (entre 2870 et 2890 minutes = environ 48h ± 10min)
-    const diff2jMin = Math.round((appointmentDate.getTime() - nowDate.getTime()) / 60000);
-    if (diff2jMin >= 2870 && diff2jMin <= 2890) {
-      let clientName = 'votre client';
-      let serviceName = '';
-      try {
-        const pro = await getUserById(appointment.proId);
-        if (pro) {
-          serviceName = pro.serviceTypeId || '';
+      // Notification 5 min avant la fin du RDV (entre 4 et 6 minutes avant la fin)
+      if (appointment.duration) {
+        const endDate = new Date(appointmentDate.getTime() + appointment.duration * 60000);
+        const diffEndMs = endDate.getTime() - nowDate.getTime();
+        const diffEndMin = Math.round(diffEndMs / 60000);
+          if (!appointment.remindersSent['endingSoon'] && diffEndMin === 5) {
+          await notificationPushService.sendAppointmentEndingSoon(
+            appointment.clientId,
+            proName,
+            appointmentDate.toLocaleDateString('fr-FR'),
+            appointment.timeSlot || ''
+          );
+          await notificationPushService.sendAppointmentEndingSoon(
+            appointment.proId,
+            clientName,
+            appointmentDate.toLocaleDateString('fr-FR'),
+            appointment.timeSlot || ''
+          );
+          appointment.remindersSent['endingSoon'] = true;
+          await require('./reminderFileService').updateReminder(appointment);
         }
-        const client = await getUserById(appointment.clientId);
-        if (client) {
-          clientName = `${client.prenom} ${client.nom}`;
-        }
-      } catch (e) { /* ignore */ }
-      // Notification au client
-      await notificationPushService.sendAppointment2DaysReminder(
-        appointment.clientId,
-        proName,
-        serviceName,
-        appointmentDate.toLocaleDateString('fr-FR'),
-        appointment.timeSlot || '',
-        false
-      );
-      // Notification au pro
-      await notificationPushService.sendAppointment2DaysReminder(
-        appointment.proId,
-        clientName,
-        serviceName,
-        appointmentDate.toLocaleDateString('fr-FR'),
-        appointment.timeSlot || '',
-        true
-      );
+      }
+
+      // Rappel 2 jours avant (entre 2870 et 2890 minutes = environ 48h ± 10min)
+      const diff2jMin = Math.round((appointmentDate.getTime() - nowDate.getTime()) / 60000);
+      if (!appointment.remindersSent['2days'] && diff2jMin === 2880) {
+        let clientName = 'votre client';
+        let serviceName = '';
+        try {
+          const pro = await getUserById(appointment.proId);
+          if (pro) {
+            serviceName = pro.serviceTypeId || '';
+          }
+          const client = await getUserById(appointment.clientId);
+          if (client) {
+            clientName = `${client.prenom} ${client.nom}`;
+          }
+        } catch (e) { /* ignore */ }
+        // Notification au client
+        await notificationPushService.sendAppointment2DaysReminder(
+          appointment.clientId,
+          proName,
+          serviceName,
+          appointmentDate.toLocaleDateString('fr-FR'),
+          appointment.timeSlot || '',
+          false
+        );
+        // Notification au pro
+        await notificationPushService.sendAppointment2DaysReminder(
+          appointment.proId,
+          clientName,
+          serviceName,
+          appointmentDate.toLocaleDateString('fr-FR'),
+          appointment.timeSlot || '',
+          true
+        );
+        appointment.remindersSent['2days'] = true;
+        await require('./reminderFileService').updateReminder(appointment);
+      }
+    } catch (e) {
+      console.error("Erreur lors de l'envoi des notifications de rappel RDV :", e);
     }
   }
 };
 
-/**
- * Génère le fichier reminders.json avec les rendez-vous CONFIRMED du jour et dans 2 jours
- */
-export const generateDailyRemindersFile = async (): Promise<void> => {
-  const now = admin.firestore.Timestamp.now();
-  const today = now.toDate();
-  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
-  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
-  const in2Days = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2, 23, 59, 59, 999);
+  /**
+   * Génère le fichier reminders.json avec les rendez-vous CONFIRMED du jour et dans 2 jours
+   */
+  export const generateDailyRemindersFile = async (): Promise<void> => {
+    const now = admin.firestore.Timestamp.now();
+    const today = now.toDate();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+    const in2Days = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2, 23, 59, 59, 999);
 
-  // RDV du jour
-  const todaySnapshot = await appointmentsCollection
-    .where('status', '==', AppointmentStatus.CONFIRMED)
-    .where('dateTime', '>=', admin.firestore.Timestamp.fromDate(startOfDay))
-    .where('dateTime', '<=', admin.firestore.Timestamp.fromDate(endOfDay))
-    .get();
+    // RDV du jour
+    const todaySnapshot = await appointmentsCollection
+      .where('status', '==', AppointmentStatus.CONFIRMED)
+      .where('dateTime', '>=', admin.firestore.Timestamp.fromDate(startOfDay))
+      .where('dateTime', '<=', admin.firestore.Timestamp.fromDate(endOfDay))
+      .get();
 
-  // RDV dans 2 jours
-  const in2DaysStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2, 0, 0, 0, 0);
-  const in2DaysEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2, 23, 59, 59, 999);
-  const in2DaysSnapshot = await appointmentsCollection
-    .where('status', '==', AppointmentStatus.CONFIRMED)
-    .where('dateTime', '>=', admin.firestore.Timestamp.fromDate(in2DaysStart))
-    .where('dateTime', '<=', admin.firestore.Timestamp.fromDate(in2DaysEnd))
-    .get();
+    // RDV dans 2 jours
+    const in2DaysStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2, 0, 0, 0, 0);
+    const in2DaysEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2, 23, 59, 59, 999);
+    const in2DaysSnapshot = await appointmentsCollection
+      .where('status', '==', AppointmentStatus.CONFIRMED)
+      .where('dateTime', '>=', admin.firestore.Timestamp.fromDate(in2DaysStart))
+      .where('dateTime', '<=', admin.firestore.Timestamp.fromDate(in2DaysEnd))
+      .get();
 
-  const reminders: ReminderEntry[] = [];
-  for (const doc of todaySnapshot.docs.concat(in2DaysSnapshot.docs)) {
-    const data = doc.data() as Appointment;
-    reminders.push({
-      id: doc.id,
-      proId: data.proId,
-      clientId: data.clientId,
-      dateTime: data.dateTime,
-      duration: data.duration,
-      timeSlot: data.timeSlot,
-      status: data.status,
-      ...(data.roomId ? { roomId: data.roomId } : {}),
-    });
-  }
-  await setReminders(reminders);
-};
+    const reminders: ReminderEntry[] = [];
+    for (const doc of todaySnapshot.docs.concat(in2DaysSnapshot.docs)) {
+      const data = doc.data() as Appointment;
+      reminders.push({
+        id: doc.id,
+        proId: data.proId,
+        clientId: data.clientId,
+        dateTime: data.dateTime,
+        duration: data.duration,
+        timeSlot: data.timeSlot,
+        status: data.status,
+        ...(data.roomId ? { roomId: data.roomId } : {}),
+      });
+    }
+    // Supprimer le fichier existant avant d'écrire
+    const REMINDER_FILE_PATH = path.resolve(__dirname, '../../reminders.json');
+    try {
+      await fs.unlink(REMINDER_FILE_PATH);
+    } catch (err: any) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+    await setReminders(reminders);
+  };

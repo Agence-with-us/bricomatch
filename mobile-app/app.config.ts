@@ -3,7 +3,7 @@ import 'dotenv/config';
 export default {
   expo: {
     name: 'Bricomatch',
-    slug: 'bricomatch',
+    slug: 'Bricomatch',
     version: '1.0.2',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -19,7 +19,7 @@ export default {
       bundleIdentifier: 'com.bricomatch.app',
       googleServicesFile: './src/fichier-sensibles/GoogleService-Info.plist',
       bitcode: false,
-      buildNumber: '8',
+      buildNumber: '14',
       infoPlist: {
         NSCameraUsageDescription: "Cette application a besoin d'accéder à votre caméra pour les appels vidéo",
         NSMicrophoneUsageDescription: "Cette application a besoin d'accéder à votre microphone pour les appels audio",
@@ -31,7 +31,7 @@ export default {
     android: {
       package: 'com.bricomatch.app',
       googleServicesFile: './src/fichier-sensibles/google-services.json',
-      versionCode: 8,
+      versionCode: 6,
       adaptiveIcon: {
         foregroundImage: './assets/icon-bricomatch-1024.png',
         backgroundColor: '#F95200',
@@ -90,6 +90,11 @@ export default {
       [
         "expo-build-properties",
         {
+          android: {
+            compileSdkVersion: 34, // Ajouté
+            targetSdkVersion: 34,  // Ajouté
+            buildToolsVersion: "34.0.0" // Ajouté
+          },
           ios: {
             useFrameworks: "static",
             deploymentTarget: "15.1"
