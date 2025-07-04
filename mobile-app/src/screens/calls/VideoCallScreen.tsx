@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Alert, BackHandler, Text, View, Platform } from 'react-native';
+import { Alert, BackHandler, Text, View, Platform, TouchableOpacity } from 'react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+
 
 import {
     RTCPeerConnection,
@@ -171,7 +173,7 @@ export default function VideoCallScreen() {
                 lastCallDuration: newCallRecord
             });
 
-        
+
         } catch (error) {
             console.error('Erreur lors de la sauvegarde de la durée:', error);
         }
@@ -241,7 +243,7 @@ export default function VideoCallScreen() {
 
         const [minutesStr] = elapsedTime.split(':');
         const minutes = parseInt(minutesStr, 10);
-      
+
 
         //si un minute est passé
         if (currentUser?.role !== UserRole.PRO)
@@ -469,11 +471,42 @@ export default function VideoCallScreen() {
         return () => clearInterval(interval);
     }, [timeLeft]);
 
-  
+
+    useEffect(() => {
+        if (timeLeft === 0) {
+            endCall();
+        }
+    }, [timeLeft]);
+
+    if (timeLeft === 0) {
+        return (
+            <View className='bg-black flex-1 justify-center items-center'>
+                <MaterialIcons name="back-hand" size={50} color="#F95200" />
+                <Text className='text-[#F95200] font-bold text-lg text-center mx-4 mt-4'>
+                    Le temps de l'appel est écoulé. Vous ne pouvez plus accéder à la visio.
+                </Text>
+                <TouchableOpacity className='bg-[#F95200] p-2 rounded-md mt-4' onPress={() => {
+                    navigate("Appointments");
+                }}>
+                    <Text className='text-white font-bold text-lg text-center mx-4'>
+                        Retourner aux rendez-vous
+                    </Text>
+                </TouchableOpacity>
+                <RatingModal
+                    visible={ratingModalVisible}
+                    onClose={() => {
+                        setRatingModalVisible(false);
+                        navigate("Appointments");
+                    }}
+                    appointmentEtUser={appointmentEtUser}
+                />
+            </View>
+        );
+    }
 
     return (
         <View className="flex-1">
-            
+
 
             {remoteStream ? (
                 <RTCView
@@ -512,7 +545,7 @@ export default function VideoCallScreen() {
                     endCall={endCall}
                     appointmentEtUser={appointmentEtUser}
                     timeLeft={timeLeft}
-         
+
 
                 />
             </View>
