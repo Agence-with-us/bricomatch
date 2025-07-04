@@ -178,7 +178,7 @@ export default function InvoicesPage() {
                           className={
                             invoice.userRole === "PRO"
                               ? "bg-blue-600 text-white"
-                              : "bg-orange-500 text-white"
+                              : "bg-green-700 text-white"
                           }
                         >
                           {invoice.userRole === "PRO" ? "Professionnel" : "Particulier"}
