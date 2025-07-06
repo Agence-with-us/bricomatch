@@ -694,6 +694,13 @@ function* updateProfileSaga(action: PayloadAction<UpdateProfileRequestPayload>):
 // Saga pour la déconnexion
 function* logoutSaga() {
   try {
+    
+
+    // 🍎 Déconnexion Apple 
+    // 🧹 Nettoyage local
+    yield call(removeLocalUserData);
+    yield call([NotificationService, NotificationService.removeCurrentToken]);
+
     // 🔒 Déconnexion Firebase Auth
     yield call(signOut, auth);
 
@@ -703,17 +710,11 @@ function* logoutSaga() {
     } catch (e) {
       console.warn('Erreur lors de la déconnexion Google:', e);
     }
-
-    // 🍎 Déconnexion Apple 
-    // 🧹 Nettoyage local
-    yield call(removeLocalUserData);
-    yield call([NotificationService, NotificationService.removeCurrentToken]);
-
     // ✅ Succès
     yield put(logoutSuccess());
 
     // Réinitialiser la navigation pour empêcher le retour en arrière
-    yield call(reset, 'Home');
+    yield call(reset, 'Login');
   } catch (error: any) {
     console.error('Erreur déconnexion:', error);
     yield put(logoutFailure('Erreur lors de la déconnexion: ' + error.message));

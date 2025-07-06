@@ -132,7 +132,7 @@ const RoleBasedTabs = () => {
       {/* Common profile tab */}
       <TabButton
         icon="person-outline"
-        label="Profile"
+        label="Mon compte"
         onPress={() => handleTabPress('ProfileScreen')}
         isActive={activeTab === 'ProfileScreen'}
       />
@@ -167,8 +167,9 @@ const TabButton = ({
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: 5,
     flexDirection: 'row',
-    height: 90,
+    height: 70,
     borderTopWidth: 1,
     borderTopColor: '#ddd',
     backgroundColor: '#fff',

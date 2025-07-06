@@ -104,43 +104,9 @@ export const getAppointmentById = async (id: string): Promise<Appointment | null
   }
 };
 
-export const getClientAppointments = async (clientId: string): Promise<Appointment[]> => {
-  try {
-    const appointmentsRef = collection(firestore, 'appointments');
-    const q = query(
-      appointmentsRef,
-      where('clientId', '==', clientId)
-    );
 
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      ...doc.data(),
-      id: doc.id
-    } as Appointment));
-  } catch (error) {
-    console.error('Erreur lors de la récupération des rendez-vous client:', error);
-    throw error;
-  }
-};
 
-export const getProfessionalAppointments = async (proId: string): Promise<Appointment[]> => {
-  try {
-    const appointmentsRef = collection(firestore, 'appointments');
-    const q = query(
-      appointmentsRef,
-      where('proId', '==', proId)
-    );
 
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      ...doc.data(),
-      id: doc.id
-    } as Appointment));
-  } catch (error) {
-    console.error('Erreur lors de la récupération des rendez-vous pro:', error);
-    throw error;
-  }
-};
 
 export const getProfessionalAppointmentsByDate = async (proId: string, date: string, status?: string | string[]): Promise<Appointment[]> => {
   try {

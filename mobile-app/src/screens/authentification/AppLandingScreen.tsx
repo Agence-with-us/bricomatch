@@ -16,7 +16,7 @@ export default function AppLandingScreen() {
     const translateY2 = useRef(new Animated.Value(0)).current;
     const skipAnim = useRef(new Animated.Value(0)).current;
 
-   
+
 
     useEffect(() => {
         Animated.timing(translateY, {
@@ -96,15 +96,14 @@ export default function AppLandingScreen() {
                         navigate('Home');
                     }}
                 >
-                    <Text className="text-base text-center text-[#F95200] ">Passer et aller à l'accueil </Text>
                     <Icon source="arrow-right" size={24} color="#F95200" />
+                    <Text className="text-base text-center text-[#F95200] font-bold "> VOIR NOS ARTISANS</Text>
                 </TouchableOpacity>
             </Animated.View>
             <View className="px-4 w-full h-[45%]">
                 <View className="items-center gap-y-2 mb-5">
                     <Text className="text-base text-muted/90 font-normal tracking-tighter text-center px-2 -mb-1.5">Bienvenue sur BRICOMATCH</Text>
-                    <Text className="text-[30px] text-muted font-bold tracking-wider -mb-1.5">L'application de</Text>
-                    <Text className="text-[30px] text-muted font-bold tracking-wider">conseil par des pros</Text>
+                    <Text className="text-[30px] text-muted font-bold tracking-wider">Que recherchez-vous ?</Text>
                 </View>
                 <TouchableOpacity
                     className="rounded-[30px] bg-[#F95200] w-full items-center justify-center h-[55]"
@@ -116,7 +115,8 @@ export default function AppLandingScreen() {
                     className="rounded-[30px] bg-[#F952001A] w-full items-center justify-center h-[55] mt-4"
                     onPress={() => navigate('Register', { role: 'PRO' })}
                 >
-                    <Text className="text-[#F95200]">JE SUIS UN ARTISAN</Text>
+                    <Text className="text-[#F95200] font-bold">JE RECHERCHE DES MISSIONS</Text>
+                    <Text className=" text-[#F95200] text-s  tracking-tighter text-center px-2 -mb-1.5">UNIQUEMENT POUR LES PRO</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     className="mt-5 flex-row gap-x-2 mx-auto" onPress={() => navigate('Login')}>
