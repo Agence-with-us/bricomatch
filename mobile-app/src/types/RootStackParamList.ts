@@ -29,7 +29,6 @@ export type RootStackParamList = {
     Home: undefined; // Pas de paramètres pour l'écran Home
     Profile: { userId: string }; // Nécessite un userId pour accéder au profil
     Services: undefined; // Pas de paramètres pour les paramètres
-    CallHome: undefined;
     Appointments: undefined;
     CreateAppointment: undefined;
 };

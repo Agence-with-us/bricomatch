@@ -123,7 +123,6 @@ const AppointmentCardItem: React.FC<AppointmentCardItemProps> = ({
 
     const getAvailableActions = () => {
         const status = appointmentWithOtherUser.appointment.status;
-        const isClient = currentUser?.role === UserRole.PARTICULIER;
         const isPro = currentUser?.role === UserRole.PRO;
         const isPastAppointment = appointmentWithOtherUser.timeStatus === "past";
 

@@ -43,3 +43,9 @@ export enum AppointmentStatus {
     PENDING_PAYOUT = 'PENDING_PAYOUT',                     // En attente de paiement
     PAID_OUT = 'PAID_OUT',                                 // Paiement capturé
 }
+
+export interface AppointmentsState {
+    myAppointements: AppointmentWithOtherUserInfo[];
+    loading: boolean;
+    error: string | null;
+}

@@ -16,7 +16,6 @@ import AppointmentsScreen from '../screens/appointments/AppointmentsScreen';
 import PaymentScreen from '../screens/payment/PaymentScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import ProfileInfoScreen from '../screens/profile/ProfileInfoScreen';
-import CallHome from '../screens/Accueil/CallHome';
 import FicheProfessionnelScreen from '../screens/fiche-professionnel/FicheProfessionnelScreen';
 import ConnectedUserAvailabilityScreen from '../screens/availabilities/ConnectedUserAvailability';
 import ValidationScreen from '../components/common/ValidationScreen';
@@ -217,14 +216,7 @@ const AppNavigator = () => {
                                 )}
                                 options={getScreenOptions('ProfileInfoScreen')}
                             />
-                            <Stack.Screen
-                                name="CallHome"
-                                children={() => (
-                                    <ProtectedRoute>
-                                        <CallHome navigation={undefined} />
-                                    </ProtectedRoute>
-                                )}
-                            />
+                           
                             <Stack.Screen
                                 name="FacturesScreen"
                                 children={() => (

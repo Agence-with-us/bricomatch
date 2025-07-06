@@ -8,7 +8,7 @@ import rootSaga from './rootSaga';
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['auth', 'services','users','availability'], 
+  whitelist: ['auth', 'services','availability'], 
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

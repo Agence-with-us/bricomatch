@@ -21,7 +21,6 @@ import { RootState } from '../../store/store';
 import { navigate } from '../../services/navigationService';
 import UserInitials from '../../components/elements/users/UserInitials';
 import { doc, getDoc } from 'firebase/firestore';
-import GoBack from '../../components/common/GoBack';
 import LogoSpinner from '../../components/common/LogoSpinner';
 
 const ChatListScreen = () => {

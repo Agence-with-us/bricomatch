@@ -40,12 +40,12 @@ const ProUsersList: React.FC<ProUsersListProps> = ({
 
     useEffect(() => {
         // Charger les utilisateurs PRO au montage du composant
-        if (serviceId) //&& proUsersByService[serviceId]?.length == 0
+        if (serviceId && proUsersByService[serviceId]?.length == 0)
             dispatch(fetchProUsersByServiceRequest(serviceId));
-        else //if (proUsers.length == 0)
+        else if (proUsers.length == 0)
             dispatch(fetchProUsersRequest());
 
-    }, [dispatch]);
+    }, []);
 
 
 

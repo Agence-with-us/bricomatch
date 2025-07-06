@@ -20,8 +20,6 @@ import {
     onSnapshot,
     deleteField,
     setDoc,
-    deleteDoc,
-    getDocs,
 } from 'firebase/firestore';
 
 import { RouteProp, useRoute } from '@react-navigation/native';
@@ -211,16 +209,8 @@ export default function VideoCallScreen() {
             connected: deleteField(),
         });
 
-        const callerCandidatesRef = collection(roomRef, 'callerCandidates');
-        const callerCandidatesSnapshot = await getDocs(callerCandidatesRef);
-        callerCandidatesSnapshot.forEach(async (doc) => {
-            await deleteDoc(doc.ref);
-        });
-        const calleeCandidatesRef = collection(roomRef, 'calleeCandidates');
-        const calleeCandidatesSnapshot = await getDocs(calleeCandidatesRef);
-        calleeCandidatesSnapshot.forEach(async (doc) => {
-            await deleteDoc(doc.ref);
-        });
+       
+        
 
         localStream?.getTracks().forEach((track) => {
             track.stop();
@@ -242,7 +232,6 @@ export default function VideoCallScreen() {
         InCallManager.stop();
 
         const [minutesStr] = elapsedTime.split(':');
-        const minutes = parseInt(minutesStr, 10);
 
 
         //si un minute est passé

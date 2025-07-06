@@ -5,189 +5,73 @@ import {
   StyleSheet,
   SafeAreaView,
   RefreshControl,
-  Alert,
   ScrollView,
 } from 'react-native';
-import { collection, query, where, getDocs, orderBy, doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import {  doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { firestore } from '../../config/firebase.config';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { RootState } from '../../store/store';
-import { Appointment, AppointmentStatus, AppointmentWithOtherUserInfo } from '../../store/appointments/types';
+import {  AppointmentStatus, AppointmentWithOtherUserInfo } from '../../store/appointments/types';
 import { navigate } from '../../services/navigationService';
-import { User } from '../../types/UserType';
 import { mediaDevices } from 'react-native-webrtc';
 import { showToast } from '../../utils/toastNotification';
 import AppointmentCardItem from '../../components/elements/appointments/AppointmentCardItem';
 import axiosInstance from '../../config/axiosInstance';
 import LogoSpinner from '../../components/common/LogoSpinner';
+import { fetchAppointmentsRequest, updateAppointmentStatusRequest } from '../../store/appointments/reducer';
 
 const AppointmentsScreen = () => {
-  const [combinedAppointments, setCombinedAppointments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const { services } = useSelector((state: RootState) => state.services);
-  
+  const { myAppointements, loading } = useSelector((state: RootState) => state.appointments);
+  const dispatch = useDispatch();
 
 
 
   // Récupérer l'utilisateur connecté depuis Redux
   const currentUser = useSelector((state: RootState) => state.auth.user);
 
-  // Charger les rendez-vous
-  const loadAppointments = async () => {
-    try {
-      setLoading(true);
-      if (!currentUser?.id) {
-        console.error("Utilisateur non connecté");
-        return;
-      }
-
-      // Définition du champ de filtrage en fonction du rôle
-      const field = currentUser.role === "PRO" ? "proId" : "clientId";
-
-      // Créer une requête pour récupérer les rendez-vous de l'utilisateur connecté
-      const appointmentsQuery = query(
-        collection(firestore, 'appointments'),
-        where(field, '==', currentUser.id),
-        where('status', 'not-in', [AppointmentStatus.PAYMENT_INITIATED]),
-        orderBy('status'), // Le champ filtré doit être en premier dans l'ordre
-        orderBy('dateTime', 'asc')
-      );
-
-
-
-      const querySnapshot = await getDocs(appointmentsQuery);
-      const combinedAppointmentsData: AppointmentWithOtherUserInfo[] = [];
-
-      // Récupérer les données de rendez-vous et des utilisateurs
-      for (const docSnap of querySnapshot.docs) {
-        const appointment = {
-          id: docSnap.id,
-          ...docSnap.data()
-        } as Appointment;
-
-        // Récupérer les informations de l'autre utilisateur (pro ou client)
-        const otherUserId = currentUser.role === "PRO" ? appointment.clientId : appointment.proId;
-
-        let otherUserInfo = null;
-
-        // Récupérer les informations de l'utilisateur directement depuis Firestore
-        if (otherUserId) {
-          try {
-            const userDoc = await getDoc(doc(firestore, 'users', otherUserId));
-            if (userDoc.exists()) {
-              const userData = userDoc.data() as User;
-
-              otherUserInfo = {
-                id: otherUserId,
-                nom: userData.nom,
-                prenom: userData.prenom,
-                photoUrl: userData?.photoUrl,
-                serviceInfo: services?.find(service => service.id === userData.serviceTypeId)
-              };
-            }
-          } catch (error) {
-            console.error("Erreur lors de la récupération des informations utilisateur:", error);
-          }
-        }
-
-        // Combiner les informations de rendez-vous et d'utilisateur
-        combinedAppointmentsData.push({
-          appointment,
-          //@ts-ignore
-          otherUser: otherUserInfo || {
-            id: otherUserId || "",
-            nom: "",
-            prenom: "",
-            photoUrl: "",
-          }
-        });
-      }
-
-      // Stocker les données combinées
-      setCombinedAppointments(combinedAppointmentsData);
-    } catch (error) {
-      console.error("Erreur lors du chargement des rendez-vous:", error);
-      Alert.alert("Erreur", "Impossible de charger vos rendez-vous");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
 
   // Initialiser les rendez-vous au chargement
   useEffect(() => {
-    loadAppointments();
+    if (myAppointements.length === 0) {
+      dispatch(fetchAppointmentsRequest());
+    }
+
   }, [currentUser]);
 
   // Gérer le rafraîchissement de la liste
   const onRefresh = () => {
-    setRefreshing(true);
-    loadAppointments();
+    dispatch(fetchAppointmentsRequest());
   };
 
   // Confirmer un rendez-vous (pour les pros)
   const confirmAppointment = async (appointmentId: string) => {
-    try {
-      setLoading(true);
 
-      // Appel de l'API qui change le statut côté backend
-      await axiosInstance.patch(`/appointments/${appointmentId}/confirm`);
+    // Appel de l'API qui change le statut côté backend
+    await axiosInstance.patch(`/appointments/${appointmentId}/confirm`);
 
 
-      // Mise à jour locale de l'état "combinedAppointments" pour refléter le nouveau statut
-      setCombinedAppointments(prevAppointments =>
-        prevAppointments.map(item => {
-          // On suppose que "item.appointment.id" contient l'identifiant du rendez-vous
-          if (item.appointment.id === appointmentId) {
-            return {
-              ...item,
-              appointment: {
-                ...item.appointment,
-                status: AppointmentStatus.CONFIRMED // mettre à jour le statut localement
-              }
-            };
-          }
-          return item;
-        })
-      );
-    } catch (error) {
-
-    } finally {
-      setLoading(false);
-    }
+    // Mise à jour locale de l'état "combinedAppointments" pour refléter le nouveau statut
+    dispatch(updateAppointmentStatusRequest({
+      id: appointmentId,
+      status: AppointmentStatus.CONFIRMED
+    }));
   };
 
   // Annuler un rendez-vous
   const cancelAppointment = async (appointmentId: string) => {
-    try {
-      setLoading(true);
 
-      // Appel de l'API qui change le statut côté backend
-      const response = await axiosInstance.patch(`/appointments/${appointmentId}/cancel`);
 
-      // Mise à jour locale de l'état "combinedAppointments" pour refléter le nouveau statut
-      setCombinedAppointments(prevAppointments =>
-        prevAppointments.map(item => {
-          // On suppose que "item.appointment.id" contient l'identifiant du rendez-vous
-          if (item.appointment.id === appointmentId) {
-            return {
-              ...item,
-              appointment: {
-                ...item.appointment,
-                status: response.data.updatedAppointment.status // mettre à jour le statut localement
-              }
-            };
-          }
-          return item;
-        })
-      );
-    } catch (error) {
+    // Appel de l'API qui change le statut côté backend
+    const response = await axiosInstance.patch(`/appointments/${appointmentId}/cancel`);
 
-    } finally {
-      setLoading(false);
-    }
+    // Mise à jour locale de l'état "combinedAppointments" pour refléter le nouveau statut
+    dispatch(updateAppointmentStatusRequest({
+      id: appointmentId,
+      status: response.data.updatedAppointment.status
+    }));
+
+
   };
 
   // Joindre l'appel vidéo
@@ -231,8 +115,10 @@ const AppointmentsScreen = () => {
     const upcoming: AppointmentWithOtherUserInfo[] = [];
     const past: AppointmentWithOtherUserInfo[] = [];
 
-    combinedAppointments.forEach(appointmentEtUser => {
+    console.log("myAppointements", myAppointements);
+    myAppointements.forEach(appointmentEtUser => {
       // 'appointment.dateTime' est déjà un Firestore Timestamp qui contient l'heure de début
+      // @ts-ignore
       const startTimestamp: Timestamp = appointmentEtUser.appointment.dateTime;
       const startMillis = startTimestamp.toMillis();
 
@@ -275,7 +161,7 @@ const AppointmentsScreen = () => {
     past.sort((a, b) => b.fullDate.toMillis() - a.fullDate.toMillis());
 
     return { upcomingAppointments: upcoming, pastAppointments: past };
-  }, [combinedAppointments]);
+  }, [myAppointements]);
 
 
 
@@ -314,7 +200,7 @@ const AppointmentsScreen = () => {
         contentContainerStyle={styles.scrollContentContainer}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={loading}
             onRefresh={onRefresh}
             colors={["#FF5722"]}
           />

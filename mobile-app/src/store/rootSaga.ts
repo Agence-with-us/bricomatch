@@ -3,6 +3,7 @@ import { watchAuthActions } from './authentification/saga';
 import { watchServicesActions } from './services/saga';
 import { watchUsersActions } from './users/saga';
 import { watchAvailabilityActions } from './availability/saga';
+import { watchAppointmentsActions } from './appointments/saga';
 
 export default function* rootSaga() {
   yield all([
@@ -10,7 +11,7 @@ export default function* rootSaga() {
     fork(watchServicesActions),
     fork(watchUsersActions),
     fork(watchAvailabilityActions),
-    
+    fork(watchAppointmentsActions),
   ]);
 }
 

@@ -14,28 +14,29 @@ import {
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../types/RootStackParamList';
 import { CardField, useStripe } from '@stripe/stripe-react-native';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store/store';
 import UserInitials from '../../components/elements/users/UserInitials';
-import { Appointment } from '../../store/appointments/types';
+import { Appointment, AppointmentStatus, AppointmentWithOtherUserInfo } from '../../store/appointments/types';
 import { showToast } from '../../utils/toastNotification';
 import axiosInstance from '../../config/axiosInstance';
 import { goBack, reset } from '../../services/navigationService';
 import { StripeError } from '../../types/StripeError';
 import { getStripeErrorMessage } from '../../utils/stripeErrorHandler';
 import { KeyboardAvoidingView } from 'react-native';
+import { addAppointmentRequest, addAppointmentSuccess } from '../../store/appointments/reducer';
 
 export default function PaymentScreen() {
     const route = useRoute<RouteProp<RootStackParamList, 'Payment'>>();
     const { appointment, proInfo } = route.params;
-
+    const dispatch = useDispatch();
     const [cardDetails, setCardDetails] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [createdAppointment, setCreatedAppointment] = useState<Appointment>();
     const [cardAnimation] = useState(new Animated.Value(0));
-    
+
     // Timer states
     const [timeRemaining, setTimeRemaining] = useState(600); // 10 minutes en secondes
     const [timerExpired, setTimerExpired] = useState(false);
@@ -62,8 +63,8 @@ export default function PaymentScreen() {
         if (timeRemaining <= 0) {
             setTimerExpired(true);
             showToast(
-                "Session expirée", 
-                "Le délai de paiement a expiré. Veuillez recommencer.", 
+                "Session expirée",
+                "Le délai de paiement a expiré. Veuillez recommencer.",
                 "error"
             );
             return;
@@ -100,7 +101,7 @@ export default function PaymentScreen() {
             setClientSecret(response.data.data.clientSecret);
             setCreatedAppointment(response.data.data.appointment);
 
-        } catch (error : any) {
+        } catch (error: any) {
             console.error(error);
             goBack();
         } finally {
@@ -140,7 +141,26 @@ export default function PaymentScreen() {
 
             if (paymentIntent?.status === 'RequiresCapture') {
                 await axiosInstance.patch(`/appointments/${createdAppointment?.id}/payment/authorize`);
+
                 showToast("Succès", "Votre paiement a été autorisé. Il sera débité une fois que le professionnel confirmera votre rendez-vous.", "success");
+                dispatch(addAppointmentRequest({
+                    appointment: {
+                        ...createdAppointment!,
+                        status: AppointmentStatus.PAYMENT_AUTHORIZED
+                    },
+                    otherUser: {
+                        id: proInfo.id,
+                        nom: proInfo.nom,
+                        prenom: proInfo.prenom,
+                        photoUrl: proInfo.photoUrl || "",
+                        serviceInfo: {
+                            id: proInfo.serviceInfo?.id || "",
+                            name: proInfo.serviceInfo?.name || "",
+                            imageUrl: proInfo.serviceInfo?.imageUrl || ""
+                        }
+                    },
+
+                } as AppointmentWithOtherUserInfo));
                 reset('ValidationScreen', {
                     info: {
                         title: "Paiement autorisé",
@@ -155,6 +175,7 @@ export default function PaymentScreen() {
             }
         } catch (error: any) {
             showToast("Erreur lors du paiement", "Veuillez réessayer plus tard", "error")
+            console.log(error);
         } finally {
             setIsProcessing(false);
         }
@@ -193,7 +214,7 @@ export default function PaymentScreen() {
                     )}
                 </View>
                 {timerExpired && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.expiredButton}
                         onPress={handleTimerExpired}
                     >
@@ -295,13 +316,13 @@ export default function PaymentScreen() {
                                 setCardDetails(cardDetails);
                             }}
                         />
-                        {Platform.OS === 'ios' && (
-                          <TouchableOpacity
-                            className='m-2 ml-auto bg-[#FF5722] p-2 rounded-lg items-center justify-end'
-                            onPress={() => Keyboard.dismiss()}
-                          >
-                            <Text className='text-white text-center'>Terminer</Text>
-                          </TouchableOpacity>
+                        {Platform.OS === 'ios' && Keyboard.isVisible() && (
+                            <TouchableOpacity
+                                className='m-2 ml-auto bg-[#FF5722] p-2 rounded-lg items-center justify-end'
+                                onPress={() => Keyboard.dismiss()}
+                            >
+                                <Text className='text-white text-center'>Terminer</Text>
+                            </TouchableOpacity>
                         )}
                     </View>
 
