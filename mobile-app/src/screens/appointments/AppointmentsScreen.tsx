@@ -199,11 +199,7 @@ const AppointmentsScreen = () => {
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContentContainer}
         refreshControl={
-          <RefreshControl
-            refreshing={loading}
-            onRefresh={onRefresh}
-            colors={["#FF5722"]}
-          />
+          <RefreshControl refreshing={loading} onRefresh={onRefresh} colors={["#FF5722"]} />
         }
         showsVerticalScrollIndicator={true}
       >
@@ -283,12 +279,6 @@ const AppointmentsScreen = () => {
         {/* Espace en bas pour éviter que le dernier élément soit coupé */}
         <View style={styles.bottomSpacer} />
 
-        <LogoSpinner
-          visible={loading}
-          message="Rendez-vous en cours..."
-          rotationDuration={1500}
-
-        />
       </ScrollView>
 
     </SafeAreaView>

@@ -376,7 +376,7 @@ class ServerNotificationPushService {
   async sendAppointmentReminder5min(userId: string, proName: string, date: string, time: string, isForPro: boolean) {
     return this.sendNotificationToUser(userId, {
       title: '⏰ RDV dans 5 min',
-      body: `Votre rdv va commencer, ${isForPro ? 'vous etes prêt ?' : 'avez-vous rempli le brief ?'}`,
+      body: `Votre rdv va commencer, vous etes prêt ?`,
       type: 'appointment_reminder_5min',
       data: {
         action: PushNotificationsActionsEnum.view_appointment

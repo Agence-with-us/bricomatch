@@ -58,12 +58,12 @@ const processAppointmentEvaluations = async (
         // Traitement selon la note et le statut
         if (lastEvaluation.rating < 4 || lastEvaluation.totalCallDuration < 10) {
             // Note < 4 : créer une notification
-            if (lastEvaluation.rating <= 4) {
+            if (lastEvaluation.rating < 4) {
                 await createLowRatingNotification(NotificationType.LOW_RATING, appointment.id!, lastEvaluation.rating, lastEvaluation.totalCallDuration);
                 console.log(`🚨 Notification créée pour note faible (${lastEvaluation.rating}) - RDV ${appointment.id}`);
             }
 
-            // lastEvaluation.totalCallDuration : créer une notification s
+            // lastEvaluation.totalCallDuration : créer une notifications
             if (lastEvaluation.totalCallDuration < 10) {
                 await createLowRatingNotification(NotificationType.SHORT_CALL_UNDER_10_MINUTES, appointment.id!, lastEvaluation.rating, lastEvaluation.totalCallDuration);
                 console.log(`🚨 Notification créée pour une appelle qui a durée mois de 10 min (${lastEvaluation.totalCallDuration}) - RDV ${appointment.id}`);
