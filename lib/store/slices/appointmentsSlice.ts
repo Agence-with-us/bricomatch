@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+
 
 interface Filters {
   status: "all" | "pending" | "confirmed" | "completed" | "cancelled";
@@ -37,41 +37,41 @@ const initialState: AppointmentsState = {
 export const countAppointments = createAsyncThunk(
   "appointments/countAppointments",
   async (_, { getState, rejectWithValue }) => {
-    const state = getState() as { appointments: AppointmentsState };
-    const { filters } = state.appointments;
-
     try {
-      let q: any = collection(db, "appointments");
-      const conditions = [];
+      const state = getState() as { appointments: AppointmentsState; auth: { user: any } };
+      const { filters } = state.appointments;
 
-      if (filters.status !== "all") {
-        conditions.push(where("status", "==", filters.status));
-      }
+      const token = await state.auth.user?.getIdToken();
 
+      // Construire query params
+      const params = new URLSearchParams();
+
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status);
       if (filters.userId && filters.userType) {
-        const userField = filters.userType === "client" ? "clientId" : "proId";
-        conditions.push(where(userField, "==", filters.userId));
+        params.append('userId', filters.userId);
+        params.append('userType', filters.userType);
+      }
+      if (filters.date.from) params.append('from', filters.date.from);
+      if (filters.date.to) params.append('to', filters.date.to);
+
+      const res = await fetch(`http://cc0kgscgc4s40w4k8ws88gg8.217.154.126.165.sslip.io/api/appointments/count?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error('Non autorisé');
       }
 
-      if (filters.date.from) {
-        conditions.push(where("dateTime", ">=", filters.date.from));
-      }
-
-      if (filters.date.to) {
-        conditions.push(where("dateTime", "<=", filters.date.to));
-      }
-
-      if (conditions.length > 0) {
-        q = query(q, ...conditions);
-      }
-
-      const snapshot = await getDocs(q);
-      return snapshot.size;
+      const data = await res.json();
+      return data.count;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
   }
 );
+
 
 const appointmentsSlice = createSlice({
   name: "appointments",

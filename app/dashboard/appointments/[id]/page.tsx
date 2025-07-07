@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { db } from "@/lib/firebase";
+import { getAuth } from "firebase/auth";
 
 interface User {
   nom: string;
@@ -40,33 +40,56 @@ export default function AppointmentDetailsPage() {
   const [pro, setPro] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setNotFound(false);
+      setError(null);
+
       try {
-        const apptSnap = await getDoc(doc(db, "appointments", id as string));
-        if (apptSnap.exists()) {
-          const data = apptSnap.data() as Appointment;
-          setAppointment({ ...data, id: apptSnap.id });
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) throw new Error("Utilisateur non authentifié");
+        const token = await user.getIdToken();
 
-          const clientSnap = await getDoc(doc(db, "users", data.clientId));
-          if (clientSnap.exists()) setClient(clientSnap.data() as User);
+        const res = await fetch(`http://cc0kgscgc4s40w4kws88gg8.217.154.126.165.sslip.io/api/appointments/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-          const proSnap = await getDoc(doc(db, "users", data.proId));
-          if (proSnap.exists()) setPro(proSnap.data() as User);
-        } else {
+        if (res.status === 404) {
           setNotFound(true);
+          setLoading(false);
+          return;
         }
-      } catch (e) {
-        setNotFound(true);
+
+        if (!res.ok) {
+          throw new Error('Accès refusé ou erreur serveur');
+        }
+
+        const data = await res.json();
+
+        setAppointment(data.appointment);
+        setClient(data.client);
+        setPro(data.pro);
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          setError(e.message);
+        } else {
+          setError(String(e));
+        }
       }
+
       setLoading(false);
     };
 
     if (id) fetchData();
   }, [id]);
+
 
   if (loading) {
     return (
@@ -165,4 +188,8 @@ export default function AppointmentDetailsPage() {
       </Card>
     </DashboardLayout>
   );
+}
+
+function setError(arg0: null) {
+  throw new Error("Function not implemented.");
 }

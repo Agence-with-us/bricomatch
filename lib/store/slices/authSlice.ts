@@ -22,22 +22,29 @@ const initialState: AuthState = {
 // 🔐 Thunk pour la connexion Firebase
 export const signIn = createAsyncThunk(
   "auth/signIn",
-  async (
-    { email, password }: { email: string; password: string },
-    thunkAPI
-  ) => {
+  async ({ email, password }: { email: string; password: string }, thunkAPI) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      return userCredential.user;
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      const token = await user.getIdToken();
+
+      // Vérification admin via backend
+      const res = await fetch('http://cc0kgscgc4s40w4k8ws88gg8.217.154.126.165.sslip.io/api/checkAdmin', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        throw new Error('Accès réservé aux admins');
+      }
+
+      return user;
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error.message);
     }
   }
 );
+
 
 // 🚪 Thunk pour la déconnexion Firebase
 export const signOut = createAsyncThunk("auth/signOut", async (_, thunkAPI) => {

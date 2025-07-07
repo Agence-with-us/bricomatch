@@ -11,7 +11,8 @@ import {
   doc,
   deleteDoc,
 } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
+import { RootState } from "..";
 
 interface User {
   id: string;
@@ -65,61 +66,77 @@ const initialState: UsersState = {
   },
 };
 
-export const fetchUsers = createAsyncThunk(
-  'users/fetchUsers',
-  async (_, { rejectWithValue }) => {
-    try {
-      const idToken = await auth.currentUser?.getIdToken(); // récupère le token de l'utilisateur connecté
-      const res = await fetch('https://ton-backend.coolify-domaine.com/api/users', {
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
+export const fetchUsers = createAsyncThunk("users/fetchUsers", async (_, thunkAPI) => {
+  try {
+    const state = thunkAPI.getState() as RootState;
+    const token = await state.auth.user?.getIdToken?.();
 
-      if (!res.ok) throw new Error('Erreur serveur');
-      return await res.json();
-    } catch (err: any) {
-      return rejectWithValue(err.message);
+    const res = await fetch("http://cc0kgscgc4s40w4k8ws88gg8.217.154.126.165.sslip.io/api/users", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error("Non autorisé");
     }
+
+    return await res.json();
+  } catch (err: any) {
+    return thunkAPI.rejectWithValue(err.message);
   }
-);
+});
 
 
-export const fetchUserStats = createAsyncThunk(
-  "users/fetchUserStats",
-  async (_, { rejectWithValue }) => {
-    try {
-      const usersRef = collection(db, "users");
 
-      const [clientsSnap, prosSnap] = await Promise.all([
-        getDocs(query(usersRef, where("role", "==", "PARTICULIER"))),
-        getDocs(query(usersRef, where("role", "==", "PRO"))),
-      ]);
+export const fetchUserStats = createAsyncThunk("users/fetchUserStats", async (_, thunkAPI) => {
+  try {
+    const state = thunkAPI.getState() as RootState;
+    const token = await state.auth.user?.getIdToken?.();
 
-      return {
-        totalUsers: clientsSnap.size + prosSnap.size,
-        clients: clientsSnap.size,
-        pros: prosSnap.size,
-      };
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    const res = await fetch("http://cc0kgscgc4s40w4k8ws88gg8.217.154.126.165.sslip.io/api/users/stats", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error("Non autorisé");
     }
+
+    return await res.json();
+  } catch (error: any) {
+    return thunkAPI.rejectWithValue(error.message);
   }
-);
+});
+
 
 export const deleteUser = createAsyncThunk<
   string,
   string,
   { rejectValue: string }
->("users/deleteUser", async (userId, { rejectWithValue }) => {
+>("users/deleteUser", async (userId, thunkAPI) => {
   try {
-    const userDocRef = doc(db, "users", userId);
-    await deleteDoc(userDocRef);
+    const state = thunkAPI.getState() as RootState;
+    const token = await state.auth.user?.getIdToken?.();
+
+    const res = await fetch(`http://cc0kgscgc4s40w4k8ws88gg8.217.154.126.165.sslip.io/api/users/${userId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error("Erreur suppression");
+    }
+
     return userId;
   } catch (error: any) {
-    return rejectWithValue(error.message);
+    return thunkAPI.rejectWithValue(error.message);
   }
 });
+
 
 const usersSlice = createSlice({
   name: "users",

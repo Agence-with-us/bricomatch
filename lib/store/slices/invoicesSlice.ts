@@ -9,7 +9,6 @@ import {
   startAfter,
   DocumentData,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { Timestamp } from "firebase/firestore";
 export interface Invoice {
   id: string;
@@ -47,48 +46,35 @@ export const fetchInvoices = createAsyncThunk(
     { userId, userRole }: { userId?: string; userRole?: string },
     { getState, rejectWithValue }
   ) => {
-    const state = getState() as { invoices: InvoicesState };
+    const state = getState() as { invoices: InvoicesState; auth: { user: any } };
     const { lastVisible } = state.invoices;
     try {
-      const invoicesRef = collection(db, "invoices");
+      const token = await state.auth.user?.getIdToken?.();
 
-      let constraints = [];
-
-      if (userId && userId !== "") {
-        constraints.push(where("userId", "==", userId));
-      }
-      if (userRole && userRole !== "") {
-        constraints.push(where("userRole", "==", userRole));
+      const params = new URLSearchParams();
+      if (userId) params.append('userId', userId);
+      if (userRole) params.append('userRole', userRole);
+      if (lastVisible && typeof lastVisible.id === 'string') {
+        params.append('lastInvoiceId', lastVisible.id);
       }
 
-      constraints.push(orderBy("invoiceNumber", "desc"));
-      constraints.push(limit(20));
+      const res = await fetch(`http://cc0kgscgc4s40w4kws88gg8.217.154.126.165.sslip.io/api/invoices?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      if (lastVisible) {
-        constraints.push(startAfter(lastVisible));
+      if (!res.ok) {
+        throw new Error('Non autorisé');
       }
 
-      const invoicesQuery = query(invoicesRef, ...constraints);
-
-      const querySnapshot = await getDocs(invoicesQuery);
-
-      const invoicesData: Invoice[] = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Invoice, "id">),
-      }));
-
-      const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1] ?? null;
-
-      return {
-        invoices: invoicesData,
-        lastVisible: lastDoc,
-        hasMore: !querySnapshot.empty,
-      };
+      return await res.json();
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
   }
 );
+
 
 const invoicesSlice = createSlice({
   name: "invoices",
@@ -114,7 +100,7 @@ const invoicesSlice = createSlice({
           state.invoices = action.payload.invoices;
         } else {
           const newInvoices = action.payload.invoices.filter(
-            (inv) => !state.invoices.some((i) => i.id === inv.id)
+            (inv: { id: string; }) => !state.invoices.some((i) => i.id === inv.id)
           );
           state.invoices = [...state.invoices, ...newInvoices];
         }
