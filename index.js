@@ -233,6 +233,18 @@ app.get('/api/users/:id', authenticate, async (req, res) => {
     }
 });
 
+app.get('/api/notifications/unread-count', authenticate, async (req, res) => {
+    try {
+        const snapshot = await db.collection('notifications')
+            .where('processed', '==', false)
+            .get();
+
+        res.json({ unreadCount: snapshot.size });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erreur serveur');
+    }
+});
 
 app.listen(3000, () => {
     console.log('Backend démarré sur port 3000');
