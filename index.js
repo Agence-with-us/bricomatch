@@ -220,6 +220,17 @@ app.get('/api/appointments/:id', authenticate, async (req, res) => {
         res.status(500).send('Erreur serveur');
     }
 });
+app.get('/api/users/:id', authenticate, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const userDoc = await db.collection('users').doc(id).get();
+        if (!userDoc.exists) return res.status(404).send('Utilisateur introuvable');
+        res.json({ id: userDoc.id, ...userDoc.data() });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erreur serveur');
+    }
+});
 
 
 app.listen(3000, () => {
