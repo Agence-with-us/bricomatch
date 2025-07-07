@@ -90,15 +90,7 @@ export default function AppLandingScreen() {
                     alignItems: 'center',
                 }}
             >
-                <TouchableOpacity
-                    className="  flex-row  items-center justify-center"
-                    onPress={() => {
-                        navigate('Home');
-                    }}
-                >
-                    <Icon source="arrow-right" size={24} color="#F95200" />
-                    <Text className="text-base text-center text-[#F95200] font-bold "> VOIR NOS ARTISANS</Text>
-                </TouchableOpacity>
+                
             </Animated.View>
             <View className="px-4 w-full h-[45%]">
                 <View className="items-center gap-y-2 mb-5">
@@ -107,26 +99,27 @@ export default function AppLandingScreen() {
                 </View>
                 <TouchableOpacity
                     className="rounded-[30px] bg-[#F95200] w-full items-center justify-center h-[55]"
-                    onPress={() => navigate('Register', { role: 'PARTICULIER' })}
+                    onPress={() => navigate('Login', { role: 'PARTICULIER' })}
                 >
                     <Text className="text-[#FFF]">JE RECHERCHE DE L'AIDE</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     className="rounded-[30px] bg-[#F952001A] w-full items-center justify-center h-[55] mt-4"
-                    onPress={() => navigate('Register', { role: 'PRO' })}
+                    onPress={() => navigate('Login', { role: 'PRO' })}
                 >
                     <Text className="text-[#F95200] font-bold">JE RECHERCHE DES MISSIONS</Text>
                     <Text className=" text-[#F95200] text-s  tracking-tighter text-center px-2 -mb-1.5">UNIQUEMENT POUR LES PRO</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                    className="mt-5 flex-row gap-x-2 mx-auto" onPress={() => navigate('Login')}>
-                    <Text className="text-base text-muted">
-                        Vous avez déjà un compte ?
-                    </Text>
-                    <Text className="text-base text-[#F95200]">
-                        Connectez-vous
-                    </Text>
+                    className="  flex-row  items-center justify-center mt-5"
+                    onPress={() => {
+                        navigate('Home');
+                    }}
+                >
+                    <Icon source="arrow-right" size={24} color="#F95200" />
+                    <Text className="text-base text-center text-[#F95200] font-bold "> VOIR NOS ARTISANS</Text>
                 </TouchableOpacity>
+                
             </View>
         </View>
     )

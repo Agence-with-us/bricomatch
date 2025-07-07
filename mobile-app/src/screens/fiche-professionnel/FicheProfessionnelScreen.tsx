@@ -35,7 +35,7 @@ export const FicheProfessionnelScreen: React.FC = () => {
     
     const handleBookModalAppointment = () => {
         if (!user) {
-            navigate('Login');
+            navigate('AppLandingScreen');
         } else {
             // Date du jour au format yyyy-mm-dd
             const today = new Date();
@@ -52,7 +52,7 @@ export const FicheProfessionnelScreen: React.FC = () => {
     // Handler pour la sélection de date dans le calendrier principal
     const handleDateSelect = (date: string) => {
         if (!user) {
-            navigate('Login');
+            navigate('AppLandingScreen');
         } else {
             setDefaultDate(date);
             setOpenDirectToSlots(true);

@@ -195,7 +195,7 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
           {/* En-tête */}
           <View className="w-full flex-row justify-between items-center mt-4">
             <GoBack />
-            <Text className="text-muted text-lg font-bold">Inscription</Text>
+            <Text className="text-muted text-lg font-bold">{role === 'PARTICULIER' ? 'Je recherche de l\'aide' : 'Je recherche des missions'}</Text>
             <View style={{ width: 30 }} />
           </View>
 
@@ -210,7 +210,8 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
 
           {/* Contenu principal */}
           <View className="w-full">
-            <Text className="text-2xl text-muted font-bold mb-6">Créer un compte</Text>
+            <Text className="text-2xl text-muted font-bold ">Créer un compte</Text>
+            <Text className="text-muted text-lg ">{role === 'PARTICULIER' ? 'En tant que particulier' : 'En tant que professionnel'}</Text>
             <View className="w-full px-4">
               <GoogleSignInComponent
                 onSignInSuccess={handleGoogleSignInSuccess}
@@ -415,7 +416,7 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
             {/* Lien vers la connexion */}
             <TouchableOpacity
               className="mt-8 mb-8 flex-row justify-center"
-              onPress={() => navigation.navigate('Login')}
+              onPress={() => navigation.navigate('AppLandingScreen')}
               activeOpacity={0.7}
             >
               <Text className="text-base text-muted">Vous avez déjà un compte ? </Text>

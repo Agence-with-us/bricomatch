@@ -58,6 +58,7 @@ import { UserRole } from '../users/types';
 import axiosInstance from '../../config/axiosInstance';
 import NotificationService from '../../services/notificationService';
 import { showToast } from '../../utils/toastNotification';
+import { Alert } from 'react-native';
 
 // Fonction pour convertir une image locale en Blob
 const createBlobFromUri = async (uri: string): Promise<Blob> => {
@@ -260,7 +261,7 @@ function* registerSaga(action: PayloadAction<RegisterRequestPayload>): SagaItera
       prenom,
       role,
       photoUrl: finalPhotoUrl || '',
-      serviceTypeId: role === 'PRO' ? serviceTypeId : ''
+      serviceTypeId: role === UserRole.PRO ? serviceTypeId : ''
     };
 
     try {
@@ -272,19 +273,19 @@ function* registerSaga(action: PayloadAction<RegisterRequestPayload>): SagaItera
         updatedAt: serverTimestamp(),
       });
 
+      // **🚀 Appel à l'API Stripe si le rôle est PRO**
+      if (role === UserRole.PRO) {
+        const response = yield call(axiosInstance.post, `/users/create-stripe-connect`);
+        console.log(response.data);
+        Alert.alert("🔄Vous recever prochainement un email '" + userData.email + "' pour compléter votre profil, sans cela vous risquez de ne pas recoir vos remunérations");
+      }
+
       // Enregistrer les données utilisateur localement
       yield call(storeUserDataLocally, userData);
 
       yield put(registerSuccess(userData));
 
-      // **🚀 Appel à l'API Stripe si le rôle est PRO**
-      if (role === 'PRO') {
-        yield call(axiosInstance.post, `/users/create-stripe-connect`);
-      }
-
-
-
-
+    
 
     } catch (firestoreError) {
       console.error("Erreur Firestore:", firestoreError);
@@ -357,12 +358,6 @@ function* loginWithGoogleSaga(action: PayloadAction<any>): SagaIterator {
       yield put(loginSuccess(userDataToStore));
       yield call(storeUserDataLocally, userDataToStore);
 
-      // **🚀 Appel à l'API Stripe si le rôle est PRO**
-      if (role === 'PRO') {
-        yield call(axiosInstance.post, `/users/create-stripe-connect`);
-        console.log(`🔄 Compte Stripe Connect demandé pour le PRO ${userId}`);
-      }
-      
       // Redirection basée sur le rôle stocké dans Firestore
       if (userDataToStore.role === UserRole.PRO) {
         navigate('Appointments');
@@ -384,9 +379,12 @@ function* loginWithGoogleSaga(action: PayloadAction<any>): SagaIterator {
           role,
           id: userId,
         };
-
+        console.log('debug newUserData', newUserData);
+        console.log('debug setTempUserData');
         yield put(setTempUserData(newUserData));
+        console.log('debug navigateToCompleteProfile');
         yield put(navigateToCompleteProfile());
+        console.log('debug navigate CompleteProfile');
         navigate('CompleteProfile');
 
       } else {
@@ -414,6 +412,7 @@ function* loginWithGoogleSaga(action: PayloadAction<any>): SagaIterator {
       }
     }
   } catch (error: any) {
+    console.error(error);
     let errorMessage = "";
 
     // 🔎 Gestion détaillée des erreurs Firebase Auth
@@ -592,6 +591,7 @@ function* completeProfileSaga(action: PayloadAction<CompleteProfileRequestPayloa
       photoUrl: userData.photoUrl,
       role: userData.role,
       serviceTypeId: userData.serviceTypeId,
+      description: userData.description,
     };
 
     // Mise à jour des données dans Firestore
@@ -599,6 +599,13 @@ function* completeProfileSaga(action: PayloadAction<CompleteProfileRequestPayloa
       ...completeUserData,
       updatedAt: serverTimestamp(),
     }, { merge: true });
+
+
+    // **🚀 Appel à l'API Stripe si le rôle est PRO**
+    const response = yield call(axiosInstance.post, `/users/create-stripe-connect`);
+    console.log(response.data);
+    Alert.alert("🔄Vous recever prochainement un email à l'adresse '" + completeUserData.email + "' pour compléter votre profil, sans cela vous risquez de ne pas recoir vos remunérations");
+
 
     // Dispatch de l'action success
     yield put(completeProfileSuccess(completeUserData));
@@ -694,7 +701,7 @@ function* updateProfileSaga(action: PayloadAction<UpdateProfileRequestPayload>):
 // Saga pour la déconnexion
 function* logoutSaga() {
   try {
-    
+
 
     // 🍎 Déconnexion Apple 
     // 🧹 Nettoyage local
@@ -714,7 +721,7 @@ function* logoutSaga() {
     yield put(logoutSuccess());
 
     // Réinitialiser la navigation pour empêcher le retour en arrière
-    yield call(reset, 'Login');
+    yield call(reset, 'AppLandingScreen');
   } catch (error: any) {
     console.error('Erreur déconnexion:', error);
     yield put(logoutFailure('Erreur lors de la déconnexion: ' + error.message));

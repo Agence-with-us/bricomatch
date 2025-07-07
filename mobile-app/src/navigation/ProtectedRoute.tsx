@@ -11,9 +11,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    // Si l'utilisateur n'est pas authentifié, rediriger vers le login
+    // Si l'utilisateur n'est pas authentifié, rediriger vers le AppLandingScreen
     if (!isAuthenticated || !user) {
-      navigate('Login');
+      navigate('AppLandingScreen');
     }
   }, [isAuthenticated, user]);
 

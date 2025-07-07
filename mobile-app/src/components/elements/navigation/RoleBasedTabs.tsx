@@ -79,7 +79,7 @@ const RoleBasedTabs = () => {
   const handleTabPress = (screenName: string) => {
     // Check if user is authenticated before navigating to protected screens
     if (!isAuthenticated || !user) {
-      navigate('Login');
+      navigate('AppLandingScreen');
       return;
     }
 

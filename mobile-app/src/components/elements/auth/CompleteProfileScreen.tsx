@@ -15,8 +15,8 @@ import { completeProfileRequest } from '../../../store/authentification/reducer'
 import { RootState } from '../../../store/store';
 import Icon from 'react-native-vector-icons/Ionicons';
 import OutlinedTextInput from '../../../components/common/OutlinedTextInput';
-import LoadingModal from '../../../components/common/LoadingModal';
 import LogoSpinner from '../../common/LogoSpinner';
+import { Service } from '../../../store/services/types';
 
 // Importez les images nécessaires
 // Assurez-vous que ces chemins correspondent à vos assets
@@ -25,18 +25,17 @@ const logoBricomatchOrange = require('../../../../assets/logo-bricomatch-orange.
 
 const CompleteProfileScreen = () => {
   const dispatch = useDispatch();
-  const tempUserData = useSelector((state: RootState) => state.auth.tempUserData);
+  const { tempUserData, loading } = useSelector((state: RootState) => state.auth);
   const { services } = useSelector((state: RootState) => state.services);
 
-  const [serviceTypeId, setServiceTypeId] = useState('');
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [description, setDescription] = useState('');
   const [descriptionError, setDescriptionError] = useState('');
   const [showServicePicker, setShowServicePicker] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const validateForm = () => {
     let isValid = true;
-    if (!serviceTypeId)
+    if (!selectedService)
       Alert.alert("Veuillez choisir un service SVP!")
 
     // Validation de la description (optionnelle mais limitée à 200 caractères)
@@ -52,10 +51,9 @@ const CompleteProfileScreen = () => {
 
   const handleSubmit = () => {
     if (validateForm()) {
-      setLoading(true);
       dispatch(completeProfileRequest({
         ...tempUserData,
-        serviceTypeId,
+        serviceTypeId: selectedService?.id,
         description,
       }));
     }
@@ -114,8 +112,8 @@ const CompleteProfileScreen = () => {
                   className="rounded-lg p-4 bg-gray-100 border border-gray-200 flex-row justify-between items-center"
                   onPress={() => setShowServicePicker(!showServicePicker)}
                 >
-                  <Text className={serviceTypeId ? "text-gray-800" : "text-gray-400"}>
-                    {serviceTypeId || 'Sélectionner un service'}
+                  <Text className={selectedService ? "text-gray-800" : "text-gray-400"}>
+                    {selectedService?.name || 'Sélectionner un service'}
                   </Text>
                   <View className="w-5 h-5">
                     <Icon name="chevron-down" size={20} color="#A0AEC0" />
@@ -130,7 +128,7 @@ const CompleteProfileScreen = () => {
                           key={service.id}
                           className={`p-3 ${index < services.length - 1 ? 'border-b border-gray-100' : ''}`}
                           onPress={() => {
-                            setServiceTypeId(service.id);
+                            setSelectedService(service);
                             setShowServicePicker(false);
                           }}
                         >
@@ -141,7 +139,7 @@ const CompleteProfileScreen = () => {
                       <TouchableOpacity
                         className="p-3"
                         onPress={() => {
-                          setServiceTypeId('Service général');
+                          setSelectedService(services[0]);
                           setShowServicePicker(false);
                         }}
                       >

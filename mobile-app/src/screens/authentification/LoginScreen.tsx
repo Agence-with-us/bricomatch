@@ -28,7 +28,7 @@ import LogoSpinner from '../../components/common/LogoSpinner';
 const offsetOrangeSplash = require('../../../assets/splash-bg-offset-orange.png')
 const logoBricomatchOrange = require('../../../assets/logo-bricomatch-orange.png')
 
-const LoginScreen = () => {
+const LoginScreen = ({ route }: { route: { params: { role: string } } }) => {
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state: RootState) => state.auth);
 
@@ -71,11 +71,17 @@ const LoginScreen = () => {
 
   const handleGoogleSignIn = (userData: any) => {
 
-    dispatch(loginWithGoogleRequest(userData));
+    dispatch(loginWithGoogleRequest({
+      ...userData,
+      role: route.params.role,
+    }));
   };
 
   const handleAppleSignIn = (userData: any) => {
-    dispatch(loginWithAppleRequest(userData));
+    dispatch(loginWithAppleRequest({
+      ...userData,
+      role: route.params.role,
+    }));
   };
 
 
@@ -107,7 +113,7 @@ const LoginScreen = () => {
           {/* En-tête */}
           <View className="w-full flex-row justify-between items-center mt-4">
             <GoBack />
-            <Text className="text-muted text-lg font-bold">Connexion</Text>
+            <Text className="text-muted text-lg font-bold">{route.params.role === 'PARTICULIER' ? 'Je recherche de l\'aide' : 'Je recherche des missions'}</Text>
             <View style={{ width: 30 }} />
           </View>
 
@@ -122,7 +128,8 @@ const LoginScreen = () => {
 
           {/* Contenu principal */}
           <View className="flex-1 w-full">
-            <Text className="text-2xl text-muted font-bold mb-6">Connexion</Text>
+            <Text className="text-2xl text-muted font-bold ">Connexion</Text>
+            <Text className="text-muted text-lg ">{route.params.role === 'PARTICULIER' ? 'En tant que particulier' : 'En tant que professionnel'}</Text>
 
             {/* Message d'erreur avec animation subtile */}
             {error && (
@@ -193,7 +200,7 @@ const LoginScreen = () => {
             {/* Lien d'inscription */}
             <TouchableOpacity
               className=" flex-row justify-center mt-5"
-              onPress={() => navigate('AppLandingScreen')}
+              onPress={() => navigate('Register', { role: route.params.role })}
               activeOpacity={0.7}
             >
               <Text className="text-base text-muted">Vous n'avez pas de compte ? </Text>

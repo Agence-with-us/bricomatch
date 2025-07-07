@@ -16,6 +16,7 @@ export type RootStackParamList = {
     ProfileInfoScreen: undefined;
 
     AppLandingScreen: undefined;
+    Login: { role: string };
     CompleteProfile: undefined;
     Register: { role: string };
 
@@ -25,7 +26,6 @@ export type RootStackParamList = {
     ChatList: undefined;
     ChatScreen: { chat: { chatId: string; otherUserInfo: UserLocal } }
 
-    Login: undefined;
     Home: undefined; // Pas de paramètres pour l'écran Home
     Profile: { userId: string }; // Nécessite un userId pour accéder au profil
     Services: undefined; // Pas de paramètres pour les paramètres

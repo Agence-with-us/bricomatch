@@ -40,10 +40,10 @@ export const createStripeConnectAccount = async (req: AuthRequest, res: Response
 
     // Mettre à jour l'utilisateur dans Firestore
     await usersCollection.doc(user.id).update({
-      stripeAccountId,
-      stripeAccountStatus: 'pending',
-      stripeOnboardingComplete: false,
-      stripeProcessed: true,
+      stripeAccountId, // id du compte stripe
+      stripeAccountStatus: 'pending', // status du compte stripe
+      stripeOnboardingComplete: false, // si le compte stripe est complet
+      stripeProcessed: true, // si le compte stripe est traité
       updatedAt: admin.firestore.Timestamp.now()
     });
 

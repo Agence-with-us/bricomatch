@@ -5,7 +5,6 @@ import { RootState } from '../../store/store';
 import { fetchServicesRequest } from '../../store/services/reducer';
 
 const AppInitializer = () => {
-  console.log('🚀 AppInitializer - Démarrage');
   
   const { user, isAuthenticated, loading } = useSelector((state: RootState) => state.auth);
   const { services } = useSelector((state: RootState) => state.services);
@@ -14,17 +13,11 @@ const AppInitializer = () => {
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastLoadingStateRef = useRef<boolean>(false);
   
-  console.log('🔍 AppInitializer - État auth:', { 
-    isAuthenticated, 
-    loading, 
-    userId: user?.id,
-    userRole: user?.role 
-  });
+  
 
   // Surveillance du loading pour détecter les blocages
   useEffect(() => {
     if (loading && !lastLoadingStateRef.current) {
-      console.log('⚠️ AppInitializer - Loading démarré, surveillance activée');
       lastLoadingStateRef.current = true;
       
       // Définir un timeout pour détecter les blocages
@@ -33,12 +26,10 @@ const AppInitializer = () => {
         console.error('🚨 État actuel:', { isAuthenticated, userId: user?.id, userRole: user?.role });
         
         // Forcer la réinitialisation de l'état loading
-        console.log('🔄 Tentative de récupération automatique...');
         // Ici on pourrait dispatcher une action pour forcer la réinitialisation
       }, 10000); // 10 secondes
       
     } else if (!loading && lastLoadingStateRef.current) {
-      console.log('✅ AppInitializer - Loading terminé');
       lastLoadingStateRef.current = false;
       
       // Nettoyer le timeout
@@ -54,9 +45,7 @@ const AppInitializer = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    console.log('📦 AppInitializer - Vérification des services:', services.length);
     if (services.length === 0) {
-      console.log('📦 AppInitializer - Chargement des services...');
       dispatch(fetchServicesRequest());
     }
   }, [dispatch, services.length]);
