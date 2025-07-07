@@ -173,11 +173,6 @@ app.get('/api/invoices', authenticate, async (req, res) => {
 });
 
 
-app.get('/api/checkAdmin', authenticateAdmin, (req, res) => {
-    res.json({ ok: true, uid: req.user.uid });
-});
-
-
 app.get('/api/appointments/count', authenticateAdmin, async (req, res) => {
     try {
         const { status, from, to, userId, userType } = req.query;
