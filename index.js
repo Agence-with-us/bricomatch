@@ -146,9 +146,6 @@ app.get('/api/checkAdmin', authenticateAdmin, (req, res) => {
     res.json({ ok: true, uid: req.user.uid });
 });
 
-if (!decoded.admin) {
-    return res.status(403).send('Accès refusé : admin requis');
-}
 
 app.get('/api/appointments/count', authenticateAdmin, async (req, res) => {
     try {
