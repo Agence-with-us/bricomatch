@@ -19,18 +19,21 @@ const initialState: AuthState = {
   error: null,
 };
 
+interface SignInParams {
+  email: string;
+  password: string;
+}
+
 // 🔐 Thunk pour la connexion Firebase
-export const signIn = createAsyncThunk(
+export const signIn = createAsyncThunk<User, SignInParams>(
   "auth/signIn",
-  async ({ email, password }: { email: string; password: string }, thunkAPI) => {
+  async ({ email, password }, thunkAPI) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
       const token = await user.getIdToken();
 
-      // Vérification admin via backend
-      const res = await fetch('http://cc0kgscgc4s40w4k8ws88gg8.217.154.126.165.sslip.io/api/checkAdmin', {
+      const res = await fetch('/api/checkAdmin', {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -39,8 +42,11 @@ export const signIn = createAsyncThunk(
       }
 
       return user;
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(error.message);
+    } catch (error) {
+      if (error instanceof Error) {
+        return thunkAPI.rejectWithValue(error.message);
+      }
+      return thunkAPI.rejectWithValue(String(error));
     }
   }
 );
