@@ -17,21 +17,40 @@ export function useAuth({ required = true }: { required?: boolean } = {}) {
   const DISABLE_AUTH = false;
 
   useEffect(() => {
-    if (DISABLE_AUTH) {
-      return;
-    }
+    if (DISABLE_AUTH) return;
 
     dispatch(setStatus("loading"));
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       dispatch(setUser(user));
 
-      if (required && !user) {
+      if (user) {
+        try {
+          // ⚠️ Forcer un refresh du token pour récupérer les custom claims (admin)
+          const token = await user.getIdToken(true);
+          const res = await fetch("/api/checkAdmin", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (!res.ok) {
+            console.warn("Non-admin détecté. Redirection vers /login.");
+            router.push("/login");
+            return;
+          }
+
+          // ✅ Admin autorisé : rediriger vers /dashboard s'il est sur /login
+          if (pathname === "/login") {
+            router.push("/dashboard");
+          }
+        } catch (err) {
+          console.error("Erreur lors de la vérification admin:", err);
+          router.push("/login");
+        }
+      } else if (required) {
+        // 🚫 Pas connecté du tout
         if (pathname !== "/login") {
           router.push("/login");
         }
-      } else if (user && pathname === "/login") {
-        router.push("/dashboard");
       }
     });
 

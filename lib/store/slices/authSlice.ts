@@ -31,7 +31,7 @@ export const signIn = createAsyncThunk<User, SignInParams>(
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      const token = await user.getIdToken();
+      const token = await user.getIdToken(true);
 
       const res = await fetch('/api/checkAdmin', {
         headers: { Authorization: `Bearer ${token}` },

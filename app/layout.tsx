@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   description: 'Administration dashboard for Bricomatch platform',
 };
 
+
 export default function RootLayout({
   children,
 }: {
