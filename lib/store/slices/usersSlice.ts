@@ -11,7 +11,7 @@ import {
   doc,
   deleteDoc,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 
 interface User {
   id: string;
@@ -66,61 +66,24 @@ const initialState: UsersState = {
 };
 
 export const fetchUsers = createAsyncThunk(
-  "users/fetchUsers",
-  async (_, { getState, rejectWithValue }) => {
-    const state = getState() as { users: UsersState };
-    const { lastVisible, filters } = state.users;
-
+  'users/fetchUsers',
+  async (_, { rejectWithValue }) => {
     try {
-      const usersRef = collection(db, "users");
-      const constraints = [];
-
-      constraints.push(orderBy("createdAt", "desc"));
-      constraints.push(limit(20));
-
-      if (lastVisible) {
-        constraints.push(startAfter(lastVisible));
-      }
-
-      const usersQuery = query(usersRef, ...constraints);
-      const querySnapshot = await getDocs(usersQuery);
-
-      const usersData: User[] = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-
-        const role = data.role;
-        const mappedType: "client" | "professional" =
-          role === "PARTICULIER"
-            ? "client"
-            : role === "PRO"
-            ? "professional"
-            : "client";
-
-        return {
-          id: doc.id,
-          type: mappedType,
-          name: data.nom || "",
-          prenom: data.prenom || "",
-          photoUrl: data.photoUrl || "",
-          email: data.email || "",
-          createdAt: data.createdAt?.toDate?.().toISOString() ?? "",
-          status: data.status || "pending",
-          phone: data.phone || "",
-        };
+      const idToken = await auth.currentUser?.getIdToken(); // récupère le token de l'utilisateur connecté
+      const res = await fetch('https://ton-backend.coolify-domaine.com/api/users', {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
       });
 
-      const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1] ?? null;
-
-      return {
-        users: usersData,
-        lastVisible: lastDoc,
-        hasMore: !querySnapshot.empty,
-      };
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+      if (!res.ok) throw new Error('Erreur serveur');
+      return await res.json();
+    } catch (err: any) {
+      return rejectWithValue(err.message);
     }
   }
 );
+
 
 export const fetchUserStats = createAsyncThunk(
   "users/fetchUserStats",
@@ -213,7 +176,7 @@ const usersSlice = createSlice({
           state.users = action.payload.users;
         } else {
           const newUsers = action.payload.users.filter(
-            (newUser) => !state.users.some((u) => u.id === newUser.id)
+            (newUser: { id: string; }) => !state.users.some((u) => u.id === newUser.id)
           );
           state.users = [...state.users, ...newUsers];
         }
