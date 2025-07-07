@@ -141,6 +141,7 @@ const authenticateAdmin = async (req, res, next) => {
     }
 };
 
+
 app.get('/api/checkAdmin', authenticateAdmin, (req, res) => {
     res.json({ ok: true, uid: req.user.uid });
 });
