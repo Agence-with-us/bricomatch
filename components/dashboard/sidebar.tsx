@@ -19,10 +19,7 @@ import { AppDispatch } from "@/lib/store";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-
+import { getAuth } from "firebase/auth";
 interface SidebarProps {
   className?: string;
 }
@@ -39,14 +36,25 @@ export function Sidebar({ className }: SidebarProps) {
   useEffect(() => {
     const fetchUnreadNotifications = async () => {
       try {
-        const q = query(
-          collection(db, "notifications"),
-          where("processed", "==", false)
-        );
-        const snapshot = await getDocs(q);
-        setUnreadCount(snapshot.size);
+        const auth = getAuth();
+        const user = auth.currentUser;
+
+        if (!user) return;
+
+        const token = await user.getIdToken();
+
+        const res = await fetch("http://localhost:3000/api/notifications/unread-count", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) throw new Error("Erreur API");
+
+        const data = await res.json();
+        setUnreadCount(data.unreadCount);
       } catch (error) {
-        console.error("Erreur lors du chargement des notifications :", error);
+        console.error("Erreur notifications :", error);
       }
     };
 
