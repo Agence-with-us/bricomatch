@@ -27,14 +27,13 @@ export default function LoginPage() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { toast } = useToast();
-  const { isAuthenticated } = useAuth({ required: false });
+  const { user, isAdmin } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (user && isAdmin) {
       router.push("/dashboard");
     }
-  }, [isAuthenticated, router]);
-
+  }, [user, isAdmin, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

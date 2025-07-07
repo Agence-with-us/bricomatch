@@ -11,12 +11,14 @@ interface AuthState {
   user: User | null;
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
+  isAdmin: boolean;
 }
 
 const initialState: AuthState = {
   user: null,
   status: "idle",
   error: null,
+  isAdmin: false,
 };
 
 interface SignInParams {
@@ -79,6 +81,9 @@ const authSlice = createSlice({
     setStatus: (state, action: PayloadAction<AuthState["status"]>) => {
       state.status = action.payload;
     },
+    setIsAdmin: (state, action: PayloadAction<boolean>) => {
+      state.isAdmin = action.payload;
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -104,5 +109,5 @@ const authSlice = createSlice({
 });
 
 // --- Exports
-export const { setUser, setStatus } = authSlice.actions;
+export const { setUser, setStatus, setIsAdmin } = authSlice.actions;
 export default authSlice.reducer;
