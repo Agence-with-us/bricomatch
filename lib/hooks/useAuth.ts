@@ -28,7 +28,8 @@ export function useAuth({ required = true }: { required?: boolean } = {}) {
         try {
           // ⚠️ Forcer un refresh du token pour récupérer les custom claims (admin)
           const token = await user.getIdToken(true);
-          const res = await fetch("/api/checkAdmin", {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/checkAdmin`, {
+
             headers: { Authorization: `Bearer ${token}` },
           });
 

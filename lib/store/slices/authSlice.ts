@@ -32,9 +32,9 @@ export const signIn = createAsyncThunk<User, SignInParams, { rejectValue: string
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      const token = await user.getIdToken(true);
+      const token = await user.getIdToken();
 
-      const res = await fetch("/api/checkAdmin", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/checkAdmin`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -42,19 +42,17 @@ export const signIn = createAsyncThunk<User, SignInParams, { rejectValue: string
 
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(errorText || "Accès refusé");
+        return thunkAPI.rejectWithValue(errorText || "Accès refusé");
       }
 
       return user;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur de connexion :", error);
-      if (error instanceof Error) {
-        return thunkAPI.rejectWithValue(error.message);
-      }
-      return thunkAPI.rejectWithValue("Une erreur inconnue s'est produite");
+      return thunkAPI.rejectWithValue(error.message || "Erreur de connexion");
     }
   }
 );
+
 
 // --- Thunk: Déconnexion
 export const signOut = createAsyncThunk<void, void, { rejectValue: string }>(
