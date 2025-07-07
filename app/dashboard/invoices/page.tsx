@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/lib/store";
 import { fetchInvoices, resetInvoices } from "@/lib/store/slices/invoicesSlice";
+import { fetchAppointmentById } from "@/lib/store/slices/appointmentsSlice"; // <--- import thunk
 import DashboardLayout from "@/components/dashboard/layout";
+import { useRouter } from "next/navigation";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import {
   Table,
   TableBody,
@@ -23,8 +26,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw } from "lucide-react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 interface UserInfo {
   id: string;
@@ -42,8 +43,49 @@ export default function InvoicesPage() {
   const { invoices, loading, error, hasMore } = useSelector(
     (state: RootState) => state.invoices
   );
+
+  // Récupérer les RDVs depuis Redux
+  const appointmentsFromRedux = useSelector(
+    (state: RootState) => state.appointments.appointments
+  );
+
+  // Local state qui stocke les RDVs en clé d'id pour accès rapide
   const [appointments, setAppointments] = useState<Record<string, any>>({});
+
+  // Pour utilisateurs (fonction fetchUser à compléter selon ton code)
   const [users, setUsers] = useState<Record<string, UserInfo>>({});
+
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+      try {
+        const token = await user.getIdToken();
+        const res = await fetch("http://cc0kgscgc4s40w4kws88gg8.217.154.126.165.sslip.io/api/checkAdmin", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          setIsAuthorized(true);
+        } else {
+          setIsAuthorized(false);
+        }
+      } catch (err) {
+        console.error("Erreur auth", err);
+        setIsAuthorized(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   useEffect(() => {
     dispatch(fetchInvoices({}));
@@ -61,48 +103,38 @@ export default function InvoicesPage() {
     dispatch(fetchInvoices({}));
   };
 
-  const fetchUser = async (userId: string) => {
-    if (!userId || users[userId]) return;
-    try {
-      const userRef = doc(db, "users", userId);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const userData = userSnap.data() as Omit<UserInfo, "id">;
-        setUsers((prev) => ({
-          ...prev,
-          [userId]: { id: userId, ...userData },
-        }));
-      }
-    } catch (err) {
-      console.error("Erreur récupération utilisateur", err);
-    }
-  };
-  const fetchAppointment = async (appointmentId: string) => {
-    if (!appointmentId || appointments[appointmentId]) return;
-    try {
-      const appointmentRef = doc(db, "appointments", appointmentId);
-      const appointmentSnap = await getDoc(appointmentRef);
-      if (appointmentSnap.exists()) {
-        setAppointments((prev) => ({
-          ...prev,
-          [appointmentId]: { id: appointmentId, ...appointmentSnap.data() },
-        }));
-      }
-    } catch (err) {
-      console.error("Erreur récupération appointment", err);
-    }
-  };
+  // Met à jour l'état local appointments à partir du store Redux appointments
+  useEffect(() => {
+    // Convertir array en dictionnaire { id: appointment }
+    const dict: Record<string, any> = {};
+    appointmentsFromRedux.forEach((appt) => {
+      dict[appt.id] = appt;
+    });
+    setAppointments(dict);
+  }, [appointmentsFromRedux]);
+
   useEffect(() => {
     invoices.forEach((invoice) => {
+      // Fetch user si pas en cache local
       if (invoice.userId && !users[invoice.userId]) {
-        fetchUser(invoice.userId);
+        // TODO: compléter avec ta fonction fetchUser
+        // fetchUser(invoice.userId);
       }
+
+      // Si rdv manquant dans redux, dispatcher fetchAppointmentById
       if (invoice.appointmentId && !appointments[invoice.appointmentId]) {
-        fetchAppointment(invoice.appointmentId);
+        dispatch(fetchAppointmentById(invoice.appointmentId));
       }
     });
-  }, [invoices]);
+  }, [invoices, appointments, users, dispatch]);
 
+  if (isAuthorized === null) {
+    return <p>Chargement...</p>;
+  }
+
+  if (isAuthorized === false) {
+    return <p className="text-red-600 text-center mt-8">Accès refusé.</p>;
+  }
   return (
     <DashboardLayout>
       <div className="flex items-center justify-between mb-6">
