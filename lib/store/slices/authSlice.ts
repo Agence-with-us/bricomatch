@@ -6,7 +6,7 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
-// État du slice
+// --- Types
 interface AuthState {
   user: User | null;
   status: "idle" | "loading" | "succeeded" | "failed";
@@ -24,44 +24,52 @@ interface SignInParams {
   password: string;
 }
 
-// 🔐 Thunk pour la connexion Firebase
-export const signIn = createAsyncThunk<User, SignInParams>(
+// --- Thunk: Connexion + Vérification admin
+export const signIn = createAsyncThunk<User, SignInParams, { rejectValue: string }>(
   "auth/signIn",
   async ({ email, password }, thunkAPI) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+
       const token = await user.getIdToken(true);
 
-      const res = await fetch('/api/checkAdmin', {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch("/api/checkAdmin", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!res.ok) {
-        throw new Error('Accès réservé aux admins');
+        const errorText = await res.text();
+        throw new Error(errorText || "Accès refusé");
       }
 
       return user;
     } catch (error) {
+      console.error("Erreur de connexion :", error);
       if (error instanceof Error) {
         return thunkAPI.rejectWithValue(error.message);
       }
-      return thunkAPI.rejectWithValue(String(error));
+      return thunkAPI.rejectWithValue("Une erreur inconnue s'est produite");
     }
   }
 );
 
-
-// 🚪 Thunk pour la déconnexion Firebase
-export const signOut = createAsyncThunk("auth/signOut", async (_, thunkAPI) => {
-  try {
-    await firebaseSignOut(auth);
-  } catch (error: any) {
-    return thunkAPI.rejectWithValue(error.message);
+// --- Thunk: Déconnexion
+export const signOut = createAsyncThunk<void, void, { rejectValue: string }>(
+  "auth/signOut",
+  async (_, thunkAPI) => {
+    try {
+      await firebaseSignOut(auth);
+    } catch (error: any) {
+      console.error("Erreur lors de la déconnexion :", error);
+      return thunkAPI.rejectWithValue(error.message);
+    }
   }
-});
+);
 
-// Slice d'authentification
+// --- Slice
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -87,7 +95,7 @@ const authSlice = createSlice({
       })
       .addCase(signIn.rejected, (state, action) => {
         state.status = "failed";
-        state.error = action.payload as string;
+        state.error = action.payload ?? "Échec de la connexion";
       })
       .addCase(signOut.fulfilled, (state) => {
         state.user = null;
@@ -97,6 +105,6 @@ const authSlice = createSlice({
   },
 });
 
-// Export des actions et du reducer
+// --- Exports
 export const { setUser, setStatus } = authSlice.actions;
 export default authSlice.reducer;
