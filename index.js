@@ -1,11 +1,25 @@
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
+const fetch = require('node-fetch'); // ajoute si node < 18 (sinon natif)
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-// Auth middleware
+// Initialisation Firebase Admin SDK
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        }),
+    });
+}
+const db = admin.firestore();
+
+// Middleware d’authentification
 const authenticate = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) return res.status(401).send('Non autorisé');
@@ -20,18 +34,51 @@ const authenticate = async (req, res, next) => {
     }
 };
 
-// Firebase Admin SDK init
-if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        }),
-    });
-}
-const db = admin.firestore();
+// Middleware admin
+const authenticateAdmin = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) return res.status(401).send('Non autorisé');
 
+    const idToken = authHeader.split('Bearer ')[1];
+    try {
+        const decoded = await admin.auth().verifyIdToken(idToken);
+        if (!decoded.admin) {
+            return res.status(403).send('Accès refusé : admin requis');
+        }
+        req.user = decoded;
+        next();
+    } catch (err) {
+        return res.status(403).send('Token invalide');
+    }
+};
+
+// Route pour vérifier admin via Firebase (existant)
+app.get('/api/checkAdmin', authenticateAdmin, (req, res) => {
+    res.json({ ok: true, uid: req.user.uid });
+});
+
+// **Exemple** route qui appelle une API externe configurée via .env
+app.get('/api/externalCheckAdmin', async (req, res) => {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) return res.status(401).send('Non autorisé');
+
+    try {
+        const response = await fetch(`${apiBaseUrl}/api/checkAdmin`, {
+            headers: { Authorization: authHeader },
+        });
+
+        if (!response.ok) {
+            return res.status(response.status).send('Erreur API externe');
+        }
+
+        const data = await response.json();
+        res.json(data);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erreur serveur');
+    }
+});
 // Route sécurisée
 app.get('/api/users', authenticate, async (req, res) => {
     if (!req.user.admin) {
@@ -124,22 +171,6 @@ app.get('/api/invoices', authenticate, async (req, res) => {
         res.status(500).send('Erreur serveur');
     }
 });
-const authenticateAdmin = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) return res.status(401).send('Non autorisé');
-
-    const idToken = authHeader.split('Bearer ')[1];
-    try {
-        const decoded = await admin.auth().verifyIdToken(idToken);
-        if (!decoded.admin) {
-            return res.status(403).send('Accès refusé : admin requis');
-        }
-        req.user = decoded;
-        next();
-    } catch (err) {
-        return res.status(403).send('Token invalide');
-    }
-};
 
 
 app.get('/api/checkAdmin', authenticateAdmin, (req, res) => {
