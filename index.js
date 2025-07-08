@@ -85,7 +85,7 @@ app.get('/api/externalCheckAdmin', async (req, res) => {
     }
 });
 // Route sécurisée
-app.get('/api/users', authenticate, async (req, res) => {
+app.get('/api/users', authenticateAdmin, async (req, res) => {
     if (!req.user.admin) {
         return res.status(403).send('Accès refusé : admin requis');
     }
@@ -100,7 +100,7 @@ app.get('/api/users', authenticate, async (req, res) => {
     }
 });
 
-app.get('/api/invoices/stats', authenticate, async (req, res) => {
+app.get('/api/invoices/stats', authenticateAdmin, async (req, res) => {
     try {
         const usersSnapshot = await db.collection('users').where('role', '==', 'PRO').get();
         const proUserIds = usersSnapshot.docs.map(doc => doc.id);
@@ -141,7 +141,7 @@ app.get('/api/invoices/stats', authenticate, async (req, res) => {
 });
 
 
-app.get('/api/invoices', authenticate, async (req, res) => {
+app.get('/api/invoices', authenticateAdmin, async (req, res) => {
     try {
         const { userId, userRole, lastInvoiceId } = req.query;
 
@@ -222,7 +222,7 @@ app.get('/api/appointments/count', authenticateAdmin, async (req, res) => {
         res.status(500).send('Erreur serveur');
     }
 });
-app.get('/api/appointments/:id', authenticate, async (req, res) => {
+app.get('/api/appointments/:id', authenticateAdmin, async (req, res) => {
     const appointmentId = req.params.id;
     const uid = req.user.uid;
 
@@ -261,7 +261,7 @@ app.get('/api/appointments/:id', authenticate, async (req, res) => {
         res.status(500).send('Erreur serveur');
     }
 });
-app.get('/api/users/:id', authenticate, async (req, res) => {
+app.get('/api/users/:id', authenticateAdmin, async (req, res) => {
     const { id } = req.params;
     try {
         const userDoc = await db.collection('users').doc(id).get();
@@ -273,7 +273,7 @@ app.get('/api/users/:id', authenticate, async (req, res) => {
     }
 });
 
-app.get('/api/notifications/unread-count', authenticate, async (req, res) => {
+app.get('/api/notifications/unread-count', authenticateAdmin, async (req, res) => {
     try {
         const snapshot = await db.collection('notifications')
             .where('processed', '==', false)
