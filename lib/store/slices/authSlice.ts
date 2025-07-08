@@ -49,7 +49,7 @@ export const signIn = createAsyncThunk<
     const token = await user.getIdToken();
 
     if (!token) throw new Error("Token non récupéré");
-
+    console.log("🎟️ Token Firebase JWT :", token);
     return { email: user.email, uid: user.uid, token };
   }
 );
