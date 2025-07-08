@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from ".."; // ajuste le chemin si besoin
+import { getAuth } from "firebase/auth";
 
 export interface StatsState {
   loading: boolean;
@@ -24,29 +25,24 @@ export const fetchStatsFromInvoices = createAsyncThunk(
   "stats/fetchStatsFromInvoices",
   async (_, thunkAPI) => {
     try {
-      const state = thunkAPI.getState() as RootState;
-      const token = state.auth.token;
+      const authInstance = getAuth();
+      const user = authInstance.currentUser;
 
-      if (!token) {
-        return thunkAPI.rejectWithValue("Token manquant");
+      if (!user) {
+        return thunkAPI.rejectWithValue("Utilisateur non connecté");
       }
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/invoices/stats`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const token = await user.getIdToken();
 
-      if (!res.ok) {
-        throw new Error("Non autorisé");
-      }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/invoices/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error("Non autorisé");
 
       return await res.json();
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(error.message);
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.message);
     }
   }
 );
