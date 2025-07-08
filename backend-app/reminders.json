@@ -107,7 +107,13 @@
     "duration": 30,
     "timeSlot": "16:30",
     "status": "CONFIRMED",
-    "roomId": "234288"
+    "roomId": "234288",
+    "remindersSent": {
+      "15min": true,
+      "5min": true,
+      "2min": true,
+      "endingSoon": true
+    }
   },
   {
     "id": "1mOG5YpgZ6VbDHO0ZHWR",
@@ -120,6 +126,9 @@
     "duration": 30,
     "timeSlot": "15:30",
     "status": "CONFIRMED",
-    "roomId": "404242"
+    "roomId": "404242",
+    "remindersSent": {
+      "endingSoon": true
+    }
   }
 ]

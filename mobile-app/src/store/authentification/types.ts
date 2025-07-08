@@ -8,6 +8,8 @@ export interface User {
     photoUrl?: string;
     serviceTypeId?: string;
     description?: string;
+    averageRating?: number;
+    reviewsCount?: number;
   }
   
   // Types pour les actions d'authentification

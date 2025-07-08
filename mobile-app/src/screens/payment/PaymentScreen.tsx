@@ -312,7 +312,6 @@ export default function PaymentScreen() {
                             cardStyle={styles.cardStyle}
                             style={styles.cardField}
                             onCardChange={(cardDetails) => {
-                                console.log(cardDetails)
                                 setCardDetails(cardDetails);
                             }}
                         />

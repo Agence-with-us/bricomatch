@@ -115,7 +115,6 @@ const AppointmentsScreen = () => {
     const upcoming: AppointmentWithOtherUserInfo[] = [];
     const past: AppointmentWithOtherUserInfo[] = [];
 
-    console.log("myAppointements", myAppointements);
     myAppointements.forEach(appointmentEtUser => {
       // 'appointment.dateTime' est déjà un Firestore Timestamp qui contient l'heure de début
       // @ts-ignore

@@ -59,7 +59,6 @@ export const getScreenOptions = (screenName: string) => {
       header: () => (
         <FixedHeader
           title="Mes RDV"
-          onBackPress={() => {}}
           rightComponent={null}
         />
       ),

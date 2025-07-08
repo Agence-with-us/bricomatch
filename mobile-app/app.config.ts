@@ -100,6 +100,13 @@ export default {
             deploymentTarget: "15.1"
           },
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/icon-bricomatch-96.png",
+          defaultChannel: "default"
+        }
       ]
     ],
     scheme: "bricomatch"

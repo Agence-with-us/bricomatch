@@ -110,7 +110,6 @@ function* addAppointmentSaga(action: PayloadAction<AppointmentWithOtherUserInfo>
         const docSnap = yield call(getDoc, doc(collectionRef, action.payload.appointment.id));
         if (docSnap.exists()) {
             const appointment = docSnap.data() as Appointment;
-            console.log("appointment", appointment);
             const appointmentWithOtherUserInfo = {
                 appointment,
                 otherUser: action.payload.otherUser
@@ -129,7 +128,6 @@ function* addAppointmentSaga(action: PayloadAction<AppointmentWithOtherUserInfo>
 function* updateAppointmentSaga(action: PayloadAction<{id: string, status: AppointmentStatus}>): SagaIterator {
 
     try {
-        console.log("action", action.payload);
         yield put(updateAppointmentStatusSuccess(action.payload));
     } catch (error: any) {
         console.error("Erreur lors de la mise à jour du rendez-vous:", error);

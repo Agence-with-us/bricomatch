@@ -19,6 +19,7 @@ import OutlinedTextInput from '../../components/common/OutlinedTextInput';
 import Icon from "react-native-vector-icons/Ionicons";
 import LogoSpinner from '../../components/common/LogoSpinner';
 import { auth } from '../../config/firebase.config';
+import StarRating from '../../components/common/StarRating';
 
 const offsetOrangeSplash = require('../../../assets/splash-bg-offset-orange.png');
 
@@ -193,10 +194,12 @@ const ProfileInfoScreen = () => {
 
       <ScrollView className="flex-1">
         <View className="flex-1 px-6">
-          
+
           {/* Contenu principal */}
           <View className="w-full">
             <Text className="text-2xl text-muted font-bold mb-6 text-center">Informations du profil</Text>
+
+
 
             {/* Message d'erreur */}
             {error && (
@@ -223,8 +226,12 @@ const ProfileInfoScreen = () => {
                   <Icon name="camera" size={16} color="#ffffff" />
                 </View>
               </TouchableOpacity>
-              <Text className="text-muted text-sm mt-2">Modifier la photo</Text>
-
+              {/* Note et nombre d'avis pour les PROs */}
+              {user?.role === 'PRO' && (
+                <View className='mt-2'>
+                  <StarRating averageRating={user.averageRating} reviewsCount={user.reviewsCount} variant='compact'/>
+                </View>
+              )}
               {/* Modal pour choisir la source de la photo */}
               <Modal
                 visible={showPhotoModal}
@@ -267,7 +274,7 @@ const ProfileInfoScreen = () => {
                   value={user?.email || ''}
                   editable={false}
                   style={{ backgroundColor: '#F9FAFB' }}
-                  onChangeText={() => {}}
+                  onChangeText={() => { }}
                 />
                 <Text className="text-gray-500 text-xs mt-1 ml-1">L'email ne peut pas être modifié</Text>
               </View>
@@ -297,7 +304,7 @@ const ProfileInfoScreen = () => {
               {!isExternalAuth && (
                 <View className="mt-6">
                   <Text className="text-lg font-semibold text-muted mb-4">Changer le mot de passe</Text>
-                  
+
                   <View className="space-y-4">
                     <View>
                       <OutlinedTextInput
@@ -338,7 +345,7 @@ const ProfileInfoScreen = () => {
                   <View className="flex-row items-center">
                     <Icon name="information-circle" size={20} color="#3B82F6" />
                     <Text className="text-blue-600 ml-2 flex-1">
-                      Compte connecté via {auth.currentUser?.providerId === 'google' ? 'Google' : 'Apple'}. 
+                      Compte connecté via {auth.currentUser?.providerId === 'google' ? 'Google' : 'Apple'}.
                       Le mot de passe est géré par votre fournisseur d'authentification.
                     </Text>
                   </View>
