@@ -92,30 +92,17 @@ const authSlice = createSlice({
       .addCase(signIn.fulfilled, (state, action) => {
         state.status = "succeeded";
 
-        // Ici, action.payload est de type SignInResult, pas User
-        // On peut construire un objet User minimal ou juste garder les données basiques
-
-        // Exemple basique sans user complet (Firebase User ne se crée pas comme ça),
-        // on stocke un objet custom avec email et uid
         state.user = {
           email: action.payload.email,
           uid: action.payload.uid,
-          // pour ne pas casser TS on ajoute les propriétés vides par défaut
-          displayName: null,
-          emailVerified: false,
-          isAnonymous: false,
-          metadata: {} as any,
-          phoneNumber: null,
-          photoURL: null,
-          providerData: [],
-          refreshToken: "",
-          tenantId: null,
-          // ... ou simplement null et adapter le reste du code
+
         } as unknown as User;
 
         state.error = null;
-        state.token = null;
+        state.token = action.payload.token; // ✅ On stocke le token
       })
+
+
       .addCase(signIn.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message ?? "Échec de la connexion";
