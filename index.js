@@ -126,12 +126,17 @@ app.get('/api/invoices/stats', authenticateAdmin, async (req, res) => {
         const usersSnapshot = await db.collection('users').where('role', '==', 'PRO').get();
         const proUserIds = usersSnapshot.docs.map(doc => doc.id);
 
+        console.log('✅ PRO users:', proUserIds);
+
         const invoicesSnapshot = await db.collection('invoices').get();
+        console.log('✅ Found invoices:', invoicesSnapshot.size);
 
         let total = 0, vat = 0, platform = 0, count = 0;
 
         invoicesSnapshot.forEach(doc => {
             const data = doc.data();
+            console.log('🔍 Invoice:', doc.id, data);
+
             if (proUserIds.includes(data.userId)) {
                 total += data.totalAmount || 0;
                 vat += data.vatAmount || 0;
@@ -147,7 +152,7 @@ app.get('/api/invoices/stats', authenticateAdmin, async (req, res) => {
             invoiceCount: count,
         });
     } catch (error) {
-        console.error(error);
+        console.error('🔥 ERREUR:', error);
         return res.status(500).json({
             totalAmount: 0,
             vatAmount: 0,
