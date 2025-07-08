@@ -56,20 +56,26 @@ const authenticate = async (req, res, next) => {
 // Middleware d’authentification admin (vérifie le token + claim admin)
 const authenticateAdmin = async (req, res, next) => {
     const token = extractToken(req.headers.authorization);
+    console.log("🔐 Token reçu:", token);
+
     if (!token) return res.status(401).send('Non autorisé');
 
     try {
         const decoded = await admin.auth().verifyIdToken(token);
+        console.log("🔑 Décodé:", decoded);
+
         if (!decoded.admin) {
             return res.status(403).send('Accès refusé : admin requis');
         }
+
         req.user = decoded;
         next();
     } catch (err) {
-        console.error('Erreur vérification token admin:', err);
+        console.error('❌ Erreur verifyIdToken:', err);
         return res.status(403).send('Token invalide');
     }
 };
+
 
 // Routes
 
@@ -284,6 +290,9 @@ app.get('/api/notifications/unread-count', authenticateAdmin, async (req, res) =
         console.error(err);
         res.status(500).send('Erreur serveur');
     }
+});
+app.get('/api/debug', authenticate, (req, res) => {
+    res.json({ user: req.user });
 });
 
 app.listen(3000, () => {
