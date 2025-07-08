@@ -63,13 +63,23 @@ const statsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
+
       .addCase(fetchStatsFromInvoices.fulfilled, (state, action) => {
         state.loading = false;
-        state.totalAmount = action.payload.totalAmount;
-        state.vatAmount = action.payload.vatAmount;
-        state.platformFees = action.payload.platformFees;
-        state.invoiceCount = action.payload.invoiceCount;
+        if (
+          action.payload &&
+          typeof action.payload === 'object' &&
+          'totalAmount' in action.payload
+        ) {
+          state.totalAmount = action.payload.totalAmount;
+          state.vatAmount = action.payload.vatAmount;
+          state.platformFees = action.payload.platformFees;
+          state.invoiceCount = action.payload.invoiceCount;
+        } else {
+          state.error = "Réponse invalide de l'API";
+        }
       })
+
       .addCase(fetchStatsFromInvoices.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;

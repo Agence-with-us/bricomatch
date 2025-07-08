@@ -52,7 +52,6 @@ export const fetchInvoices = createAsyncThunk(
       const user = state.auth.user;
       const token = user && typeof user.getIdToken === 'function' ? await user.getIdToken() : null;
 
-
       const params = new URLSearchParams();
       if (userId) params.append('userId', userId);
       if (userRole) params.append('userRole', userRole);

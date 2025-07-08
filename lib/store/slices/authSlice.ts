@@ -35,7 +35,6 @@ export const signIn = createAsyncThunk<User, SignInParams, { rejectValue: string
       const user = userCredential.user;
 
       const token = await user.getIdToken();
-
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/checkAdmin`, {
         headers: {
           Authorization: `Bearer ${token}`,
