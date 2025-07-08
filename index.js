@@ -209,10 +209,11 @@ app.get('/api/appointments/count', authenticateAdmin, async (req, res) => {
         const snapshot = await q.get();
         res.json({ count: snapshot.size });
     } catch (err) {
-        console.error(err);
-        res.status(500).send('Erreur serveur');
+        console.error('Erreur dans /api/appointments/count:', err);
+        res.status(500).json({ error: 'Erreur serveur interne' });
     }
 });
+
 
 // Détails rendez-vous (admin ou concerné)
 app.get('/api/appointments/:id', authenticate, async (req, res) => {
