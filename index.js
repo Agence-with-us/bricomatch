@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
-const fetch = require('node-fetch'); // ajoute si node < 18 (sinon natif)
+const fetch = require('node-fetch'); // si Node < 18, sinon natif
 const app = express();
 
 app.use(express.json());
@@ -12,6 +12,7 @@ app.use(cors({
     ],
     credentials: true
 }));
+
 // Initialisation Firebase Admin SDK
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -24,57 +25,56 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 
-// Middleware d’authentification
-const authenticate = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) return res.status(401).send('Non autorisé');
+// Helper pour extraire le token Bearer du header Authorization
+function extractToken(authHeader) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+    return authHeader.split(' ')[1];
+}
 
-    const idToken = authHeader.split('Bearer ')[1];
+// Middleware d’authentification utilisateur (vérifie le token Firebase)
+const authenticate = async (req, res, next) => {
+    const token = extractToken(req.headers.authorization);
+    if (!token) return res.status(401).send('Non autorisé');
+
     try {
-        const decoded = await admin.auth().verifyIdToken(idToken);
+        const decoded = await admin.auth().verifyIdToken(token);
         req.user = decoded;
         next();
     } catch (err) {
+        console.error('Token invalide:', err);
         return res.status(403).send('Token invalide');
     }
 };
 
-// Middleware admin
+// Middleware d’authentification admin (vérifie le token + claim admin)
 const authenticateAdmin = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    console.log('Authorization Header (Admin):', authHeader);
-
-    if (!authHeader?.startsWith('Bearer ')) return res.status(401).send('Non autorisé');
-
-    const idToken = authHeader.split('Bearer ')[1];
-    console.log('Extracted Token (Admin):', idToken);
+    const token = extractToken(req.headers.authorization);
+    if (!token) return res.status(401).send('Non autorisé');
 
     try {
-        const decoded = await admin.auth().verifyIdToken(idToken);
+        const decoded = await admin.auth().verifyIdToken(token);
         if (!decoded.admin) {
             return res.status(403).send('Accès refusé : admin requis');
         }
         req.user = decoded;
         next();
     } catch (err) {
-        console.error('Erreur vérification token (Admin) :', err);
+        console.error('Erreur vérification token admin:', err);
         return res.status(403).send('Token invalide');
     }
 };
 
+// Routes
 
-// Route pour vérifier admin via Firebase (existant)
+// Vérifier si utilisateur admin (test)
 app.get('/api/checkAdmin', authenticateAdmin, (req, res) => {
     res.json({ ok: true, uid: req.user.uid });
 });
 
-// **Exemple** route qui appelle une API externe configurée via .env
+// Exemple appel API externe avec token
 app.get('/api/externalCheckAdmin', async (req, res) => {
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
     const authHeader = req.headers.authorization;
-
-    // Log du header Authorization
-    console.log('[/api/externalCheckAdmin] Authorization Header:', authHeader);
 
     if (!authHeader?.startsWith('Bearer ')) return res.status(401).send('Non autorisé');
 
@@ -83,31 +83,20 @@ app.get('/api/externalCheckAdmin', async (req, res) => {
             headers: { Authorization: authHeader },
         });
 
-        // Log de la réponse brute
-        console.log('[/api/externalCheckAdmin] Status Code from external API:', response.status);
-
         if (!response.ok) {
             return res.status(response.status).send('Erreur API externe');
         }
 
         const data = await response.json();
-
-        // Log des données retournées
-        console.log('[/api/externalCheckAdmin] Response JSON:', data);
-
         res.json(data);
     } catch (err) {
-        console.error('[/api/externalCheckAdmin] Erreur lors de l’appel API externe :', err);
+        console.error('Erreur appel API externe:', err);
         res.status(500).send('Erreur serveur');
     }
 });
 
-// Route sécurisée
+// Liste utilisateurs (admin uniquement)
 app.get('/api/users', authenticateAdmin, async (req, res) => {
-    if (!req.user.admin) {
-        return res.status(403).send('Accès refusé : admin requis');
-    }
-
     try {
         const snapshot = await db.collection('users').get();
         const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -118,6 +107,7 @@ app.get('/api/users', authenticateAdmin, async (req, res) => {
     }
 });
 
+// Statistiques factures (admin)
 app.get('/api/invoices/stats', authenticateAdmin, async (req, res) => {
     try {
         const usersSnapshot = await db.collection('users').where('role', '==', 'PRO').get();
@@ -125,10 +115,7 @@ app.get('/api/invoices/stats', authenticateAdmin, async (req, res) => {
 
         const invoicesSnapshot = await db.collection('invoices').get();
 
-        let total = 0;
-        let vat = 0;
-        let platform = 0;
-        let count = 0;
+        let total = 0, vat = 0, platform = 0, count = 0;
 
         invoicesSnapshot.forEach(doc => {
             const data = doc.data();
@@ -158,20 +145,15 @@ app.get('/api/invoices/stats', authenticateAdmin, async (req, res) => {
     }
 });
 
-
+// Liste factures avec pagination (admin)
 app.get('/api/invoices', authenticateAdmin, async (req, res) => {
     try {
         const { userId, userRole, lastInvoiceId } = req.query;
 
         let invoicesQuery = db.collection('invoices');
 
-        if (userId) {
-            invoicesQuery = invoicesQuery.where('userId', '==', userId);
-        }
-
-        if (userRole) {
-            invoicesQuery = invoicesQuery.where('userRole', '==', userRole);
-        }
+        if (userId) invoicesQuery = invoicesQuery.where('userId', '==', userId);
+        if (userRole) invoicesQuery = invoicesQuery.where('userRole', '==', userRole);
 
         invoicesQuery = invoicesQuery.orderBy('invoiceNumber', 'desc').limit(20);
 
@@ -202,7 +184,7 @@ app.get('/api/invoices', authenticateAdmin, async (req, res) => {
     }
 });
 
-
+// Comptage rendez-vous (admin)
 app.get('/api/appointments/count', authenticateAdmin, async (req, res) => {
     try {
         const { status, from, to, userId, userType } = req.query;
@@ -210,22 +192,13 @@ app.get('/api/appointments/count', authenticateAdmin, async (req, res) => {
         let q = db.collection('appointments');
         const conditions = [];
 
-        if (status && status !== 'all') {
-            conditions.push(['status', '==', status]);
-        }
-
+        if (status && status !== 'all') conditions.push(['status', '==', status]);
         if (userId && userType) {
             const userField = userType === 'client' ? 'clientId' : 'proId';
             conditions.push([userField, '==', userId]);
         }
-
-        if (from) {
-            conditions.push(['dateTime', '>=', from]);
-        }
-
-        if (to) {
-            conditions.push(['dateTime', '<=', to]);
-        }
+        if (from) conditions.push(['dateTime', '>=', from]);
+        if (to) conditions.push(['dateTime', '<=', to]);
 
         if (conditions.length) {
             conditions.forEach(([field, op, val]) => {
@@ -240,30 +213,28 @@ app.get('/api/appointments/count', authenticateAdmin, async (req, res) => {
         res.status(500).send('Erreur serveur');
     }
 });
-app.get('/api/appointments/:id', authenticateAdmin, async (req, res) => {
+
+// Détails rendez-vous (admin ou concerné)
+app.get('/api/appointments/:id', authenticate, async (req, res) => {
     const appointmentId = req.params.id;
     const uid = req.user.uid;
 
     try {
-        // Récupérer le rdv
         const apptDoc = await db.collection('appointments').doc(appointmentId).get();
 
-        if (!apptDoc.exists) {
-            return res.status(404).send('Rendez-vous introuvable');
-        }
+        if (!apptDoc.exists) return res.status(404).send('Rendez-vous introuvable');
 
         const apptData = apptDoc.data();
 
-        // Vérifier que l'utilisateur a accès (admin ou client/pro concerné)
+        // Accès admin ou client/pro concerné
         if (
-            !req.user.admin && // admin flag dans token custom claim
+            !req.user.admin &&
             uid !== apptData.clientId &&
             uid !== apptData.proId
         ) {
             return res.status(403).send('Accès refusé');
         }
 
-        // Récupérer client et pro
         const [clientDoc, proDoc] = await Promise.all([
             db.collection('users').doc(apptData.clientId).get(),
             db.collection('users').doc(apptData.proId).get(),
@@ -279,6 +250,8 @@ app.get('/api/appointments/:id', authenticateAdmin, async (req, res) => {
         res.status(500).send('Erreur serveur');
     }
 });
+
+// Détails utilisateur (admin)
 app.get('/api/users/:id', authenticateAdmin, async (req, res) => {
     const { id } = req.params;
     try {
@@ -291,6 +264,7 @@ app.get('/api/users/:id', authenticateAdmin, async (req, res) => {
     }
 });
 
+// Nombre de notifications non lues (admin)
 app.get('/api/notifications/unread-count', authenticateAdmin, async (req, res) => {
     try {
         const snapshot = await db.collection('notifications')
