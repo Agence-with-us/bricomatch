@@ -25,7 +25,13 @@ export const fetchStatsFromInvoices = createAsyncThunk(
   async (_, thunkAPI) => {
     try {
       const state = thunkAPI.getState() as RootState;
-      const token = await state.auth.user?.getIdToken?.();
+      const user = state.auth.user;
+      const token = user && typeof user.getIdToken === 'function' ? await user.getIdToken() : null;
+
+      if (!token) {
+        return thunkAPI.rejectWithValue("Token manquant");
+      }
+
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/invoices/stats`,

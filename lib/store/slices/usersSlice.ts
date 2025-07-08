@@ -71,7 +71,13 @@ export const fetchUsers = createAsyncThunk(
   async (_, thunkAPI) => {
     try {
       const state = thunkAPI.getState() as RootState;
-      const token = await state.auth.user?.getIdToken?.();
+      const user = state.auth.user;
+      const token = user && typeof user.getIdToken === 'function' ? await user.getIdToken() : null;
+
+      if (!token) {
+        return thunkAPI.rejectWithValue("Token manquant");
+      }
+
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/users`,
@@ -98,7 +104,13 @@ export const fetchUserStats = createAsyncThunk(
   async (_, thunkAPI) => {
     try {
       const state = thunkAPI.getState() as RootState;
-      const token = await state.auth.user?.getIdToken?.();
+      const user = state.auth.user;
+      const token = user && typeof user.getIdToken === 'function' ? await user.getIdToken() : null;
+
+      if (!token) {
+        return thunkAPI.rejectWithValue("Token manquant");
+      }
+
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/users/stats`,
@@ -127,7 +139,13 @@ export const deleteUser = createAsyncThunk<
 >("users/deleteUser", async (userId, thunkAPI) => {
   try {
     const state = thunkAPI.getState() as RootState;
-    const token = await state.auth.user?.getIdToken?.();
+    const user = state.auth.user;
+    const token = user && typeof user.getIdToken === 'function' ? await user.getIdToken() : null;
+
+    if (!token) {
+      return thunkAPI.rejectWithValue("Token manquant");
+    }
+
 
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`,
@@ -157,7 +175,13 @@ export const fetchUserById = createAsyncThunk<
 >("users/fetchUserById", async (userId, thunkAPI) => {
   try {
     const state = thunkAPI.getState();
-    const token = await state.auth.user?.getIdToken?.();
+    const user = state.auth.user;
+    const token = user && typeof user.getIdToken === 'function' ? await user.getIdToken() : null;
+
+    if (!token) {
+      return thunkAPI.rejectWithValue("Token manquant");
+    }
+
 
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`,
