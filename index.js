@@ -42,9 +42,13 @@ const authenticate = async (req, res, next) => {
 // Middleware admin
 const authenticateAdmin = async (req, res, next) => {
     const authHeader = req.headers.authorization;
+    console.log('Authorization Header (Admin):', authHeader);
+
     if (!authHeader?.startsWith('Bearer ')) return res.status(401).send('Non autorisé');
 
     const idToken = authHeader.split('Bearer ')[1];
+    console.log('Extracted Token (Admin):', idToken);
+
     try {
         const decoded = await admin.auth().verifyIdToken(idToken);
         if (!decoded.admin) {
@@ -53,9 +57,11 @@ const authenticateAdmin = async (req, res, next) => {
         req.user = decoded;
         next();
     } catch (err) {
+        console.error('Erreur vérification token (Admin) :', err);
         return res.status(403).send('Token invalide');
     }
 };
+
 
 // Route pour vérifier admin via Firebase (existant)
 app.get('/api/checkAdmin', authenticateAdmin, (req, res) => {
@@ -66,6 +72,10 @@ app.get('/api/checkAdmin', authenticateAdmin, (req, res) => {
 app.get('/api/externalCheckAdmin', async (req, res) => {
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
     const authHeader = req.headers.authorization;
+
+    // Log du header Authorization
+    console.log('[/api/externalCheckAdmin] Authorization Header:', authHeader);
+
     if (!authHeader?.startsWith('Bearer ')) return res.status(401).send('Non autorisé');
 
     try {
@@ -73,17 +83,25 @@ app.get('/api/externalCheckAdmin', async (req, res) => {
             headers: { Authorization: authHeader },
         });
 
+        // Log de la réponse brute
+        console.log('[/api/externalCheckAdmin] Status Code from external API:', response.status);
+
         if (!response.ok) {
             return res.status(response.status).send('Erreur API externe');
         }
 
         const data = await response.json();
+
+        // Log des données retournées
+        console.log('[/api/externalCheckAdmin] Response JSON:', data);
+
         res.json(data);
     } catch (err) {
-        console.error(err);
+        console.error('[/api/externalCheckAdmin] Erreur lors de l’appel API externe :', err);
         res.status(500).send('Erreur serveur');
     }
 });
+
 // Route sécurisée
 app.get('/api/users', authenticateAdmin, async (req, res) => {
     if (!req.user.admin) {
