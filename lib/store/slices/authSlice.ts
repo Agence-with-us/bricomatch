@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
+  getAuth,
   User,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -11,11 +12,13 @@ interface AuthState {
   user: User | null;
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
+  token: string | null
   isAdmin: boolean;
 }
 
 const initialState: AuthState = {
   user: null,
+  token: null,
   status: "idle",
   error: null,
   isAdmin: false,
@@ -26,34 +29,30 @@ interface SignInParams {
   password: string;
 }
 
-// --- Thunk: Connexion + Vérification admin
-export const signIn = createAsyncThunk<User, SignInParams, { rejectValue: string }>(
-  "auth/signIn",
-  async ({ email, password }, thunkAPI) => {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+interface SignInResult {
+  email: string | null;
+  uid: string;
+  token: string;
+}
 
-      const token = await user.getIdToken();
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/checkAdmin`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+// --- Thunk: Connexion + récupération token
+export const signIn = createAsyncThunk<
+  SignInResult,
+  SignInParams
+>(
+  'auth/signIn',
+  async ({ email, password }) => {
+    // Utiliser l'instance auth de firebase ou getAuth()
+    const authInstance = auth || getAuth();
+    const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
+    const user = userCredential.user;
+    const token = await user.getIdToken();
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        return thunkAPI.rejectWithValue(errorText || "Accès refusé");
-      }
+    if (!token) throw new Error("Token non récupéré");
 
-      return user;
-    } catch (error: any) {
-      console.error("Erreur de connexion :", error);
-      return thunkAPI.rejectWithValue(error.message || "Erreur de connexion");
-    }
+    return { email: user.email, uid: user.uid, token };
   }
 );
-
 
 // --- Thunk: Déconnexion
 export const signOut = createAsyncThunk<void, void, { rejectValue: string }>(
@@ -90,23 +89,45 @@ const authSlice = createSlice({
         state.status = "loading";
         state.error = null;
       })
-      .addCase(signIn.fulfilled, (state, action: PayloadAction<User>) => {
+      .addCase(signIn.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.user = action.payload;
+
+        // Ici, action.payload est de type SignInResult, pas User
+        // On peut construire un objet User minimal ou juste garder les données basiques
+
+        // Exemple basique sans user complet (Firebase User ne se crée pas comme ça),
+        // on stocke un objet custom avec email et uid
+        state.user = {
+          email: action.payload.email,
+          uid: action.payload.uid,
+          // pour ne pas casser TS on ajoute les propriétés vides par défaut
+          displayName: null,
+          emailVerified: false,
+          isAnonymous: false,
+          metadata: {} as any,
+          phoneNumber: null,
+          photoURL: null,
+          providerData: [],
+          refreshToken: "",
+          tenantId: null,
+          // ... ou simplement null et adapter le reste du code
+        } as unknown as User;
+
         state.error = null;
+        state.token = null;
       })
       .addCase(signIn.rejected, (state, action) => {
         state.status = "failed";
-        state.error = action.payload ?? "Échec de la connexion";
+        state.error = action.error.message ?? "Échec de la connexion";
       })
       .addCase(signOut.fulfilled, (state) => {
         state.user = null;
+        state.token = null;
         state.status = "idle";
         state.error = null;
       });
   },
 });
 
-// --- Exports
 export const { setUser, setStatus, setIsAdmin } = authSlice.actions;
 export default authSlice.reducer;
