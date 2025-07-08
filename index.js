@@ -4,9 +4,14 @@ const admin = require('firebase-admin');
 const fetch = require('node-fetch'); // ajoute si node < 18 (sinon natif)
 const app = express();
 
-app.use(cors());
 app.use(express.json());
-
+app.use(cors({
+    origin: [
+        "https://dashboard-2019.brico-match.com",
+        "http://localhost:3000"
+    ],
+    credentials: true
+}));
 // Initialisation Firebase Admin SDK
 if (!admin.apps.length) {
     admin.initializeApp({
