@@ -130,9 +130,16 @@ app.get('/api/invoices/stats', authenticate, async (req, res) => {
         });
     } catch (error) {
         console.error(error);
-        res.status(500).send('Erreur serveur');
+        return res.status(500).json({
+            totalAmount: 0,
+            vatAmount: 0,
+            platformFees: 0,
+            invoiceCount: 0,
+            error: 'Erreur serveur',
+        });
     }
 });
+
 
 app.get('/api/invoices', authenticate, async (req, res) => {
     try {
