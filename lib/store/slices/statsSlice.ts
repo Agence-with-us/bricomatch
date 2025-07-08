@@ -24,26 +24,22 @@ const initialState: StatsState = {
 export const fetchStatsFromInvoices = createAsyncThunk(
   "stats/fetchStatsFromInvoices",
   async (_, thunkAPI) => {
-    try {
-      const authInstance = getAuth();
-      const user = authInstance.currentUser;
+    const authInstance = getAuth();
+    const user = authInstance.currentUser;
 
-      if (!user) {
-        return thunkAPI.rejectWithValue("Utilisateur non connecté");
-      }
-
-      const token = await user.getIdToken();
-
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/invoices/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) throw new Error("Non autorisé");
-
-      return await res.json();
-    } catch (err: any) {
-      return thunkAPI.rejectWithValue(err.message);
+    if (!user) {
+      return thunkAPI.rejectWithValue("Utilisateur non connecté");
     }
+
+    const token = await user.getIdToken(true); // 👈 toujours forcer le refresh
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/invoices/stats`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) throw new Error("Non autorisé");
+
+    return await res.json();
   }
 );
 

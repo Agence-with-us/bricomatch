@@ -4,6 +4,7 @@ import {
   signOut as firebaseSignOut,
   getAuth,
   User,
+  onAuthStateChanged,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
@@ -12,13 +13,11 @@ interface AuthState {
   user: User | null;
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
-  token: string | null
   isAdmin: boolean;
 }
 
 const initialState: AuthState = {
   user: null,
-  token: null,
   status: "idle",
   error: null,
   isAdmin: false,
@@ -30,27 +29,20 @@ interface SignInParams {
 }
 
 interface SignInResult {
-  email: string | null;
-  uid: string;
-  token: string;
+  user: User;
 }
 
-// --- Thunk: Connexion + récupération token
-export const signIn = createAsyncThunk<
-  SignInResult,
-  SignInParams
->(
-  'auth/signIn',
+// --- Thunk: Connexion
+export const signIn = createAsyncThunk<SignInResult, SignInParams>(
+  "auth/signIn",
   async ({ email, password }) => {
-    // Utiliser l'instance auth de firebase ou getAuth()
     const authInstance = auth || getAuth();
     const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
     const user = userCredential.user;
-    const token = await user.getIdToken();
 
-    if (!token) throw new Error("Token non récupéré");
-    console.log("🎟️ Token Firebase JWT :", token);
-    return { email: user.email, uid: user.uid, token };
+    console.log("✅ Connecté :", user.email);
+    // Pas besoin de token ici : tu le récupéreras avec getIdToken() quand tu en as besoin
+    return { user };
   }
 );
 
@@ -81,7 +73,7 @@ const authSlice = createSlice({
     },
     setIsAdmin: (state, action: PayloadAction<boolean>) => {
       state.isAdmin = action.payload;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -91,25 +83,15 @@ const authSlice = createSlice({
       })
       .addCase(signIn.fulfilled, (state, action) => {
         state.status = "succeeded";
-
-        state.user = {
-          email: action.payload.email,
-          uid: action.payload.uid,
-
-        } as unknown as User;
-
+        state.user = action.payload.user; // On garde le vrai User Firebase
         state.error = null;
-        state.token = action.payload.token; // ✅ On stocke le token
       })
-
-
       .addCase(signIn.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message ?? "Échec de la connexion";
       })
       .addCase(signOut.fulfilled, (state) => {
         state.user = null;
-        state.token = null;
         state.status = "idle";
         state.error = null;
       });
