@@ -33,33 +33,33 @@ export function Sidebar({ className }: SidebarProps) {
 
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    const fetchUnreadNotifications = async () => {
-      try {
-        const auth = getAuth();
-        const user = auth.currentUser;
+  // useEffect(() => {
+  //   const fetchUnreadNotifications = async () => {
+  //     try {
+  //       const auth = getAuth();
+  //       const user = auth.currentUser;
 
-        if (!user) return;
+  //       if (!user) return;
 
-        const token = await user.getIdToken();
+  //       const token = await user.getIdToken();
 
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/unread-count`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+  //       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/unread-count`, {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       });
 
-        if (!res.ok) throw new Error("Erreur API");
+  //       if (!res.ok) throw new Error("Erreur API");
 
-        const data = await res.json();
-        setUnreadCount(data.unreadCount);
-      } catch (error) {
-        console.error("Erreur notifications :", error);
-      }
-    };
+  //       const data = await res.json();
+  //       setUnreadCount(data.unreadCount);
+  //     } catch (error) {
+  //       console.error("Erreur notifications :", error);
+  //     }
+  //   };
 
-    fetchUnreadNotifications();
-  }, []);
+  //   fetchUnreadNotifications();
+  // }, []);
 
   const handleSignOut = async () => {
     await dispatch(signOut());
