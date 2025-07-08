@@ -74,7 +74,7 @@ export const fetchUsers = createAsyncThunk(
       const token = await state.auth.user?.getIdToken?.();
 
       const res = await fetch(
-        "http://cc0kgscgc4s40w4k8ws88gg8.217.154.126.165.sslip.io/api/users",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/users`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -101,7 +101,7 @@ export const fetchUserStats = createAsyncThunk(
       const token = await state.auth.user?.getIdToken?.();
 
       const res = await fetch(
-        "http://cc0kgscgc4s40w4k8ws88gg8.217.154.126.165.sslip.io/api/users/stats",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/users/stats`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -130,7 +130,7 @@ export const deleteUser = createAsyncThunk<
     const token = await state.auth.user?.getIdToken?.();
 
     const res = await fetch(
-      `http://cc0kgscgc4s40w4k8ws88gg8.217.154.126.165.sslip.io/api/users/${userId}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`,
       {
         method: "DELETE",
         headers: {
@@ -160,7 +160,7 @@ export const fetchUserById = createAsyncThunk<
     const token = await state.auth.user?.getIdToken?.();
 
     const res = await fetch(
-      `http://cc0kgscgc4s40w4k8ws88gg8.217.154.126.165.sslip.io/api/users/${userId}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

@@ -28,7 +28,7 @@ export const fetchStatsFromInvoices = createAsyncThunk(
       const token = await state.auth.user?.getIdToken?.();
 
       const res = await fetch(
-        "http://cc0kgscgc4s40w4k8ws88gg8.217.154.126.165.sslip.io/api/invoices/stats",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/invoices/stats`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

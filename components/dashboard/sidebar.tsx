@@ -43,7 +43,7 @@ export function Sidebar({ className }: SidebarProps) {
 
         const token = await user.getIdToken();
 
-        const res = await fetch("http://localhost:3000/api/notifications/unread-count", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/unread-count`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -95,7 +95,7 @@ export function Sidebar({ className }: SidebarProps) {
             if (item.href === "/dashboard") {
               isActive = pathname === "/dashboard";
             } else {
-              isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+              isActive = pathname === item.href || pathname?.startsWith(`${item.href} / `);
             }
             return (
               <Link

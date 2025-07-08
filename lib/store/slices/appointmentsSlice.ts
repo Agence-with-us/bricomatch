@@ -68,7 +68,7 @@ export const countAppointments = createAsyncThunk<
       if (filters.date.to) params.append("to", filters.date.to);
 
       const res = await fetch(
-        `http://cc0kgscgc4s40w4k8ws88gg8.217.154.126.165.sslip.io/api/appointments/count?${params.toString()}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/appointments/count?${params.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -101,7 +101,7 @@ export const fetchAppointmentById = createAsyncThunk<
       const token = await state.auth.user?.getIdToken();
 
       const res = await fetch(
-        `http://cc0kgscgc4s40w4k8ws88gg8.217.154.126.165.sslip.io/api/appointments/${appointmentId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/appointments/${appointmentId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
