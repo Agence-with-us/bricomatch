@@ -4,7 +4,10 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Header } from "@/components/dashboard/header";
 import { useTheme } from "next-themes";
-
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { setUser } from "../../lib/store/slices/authSlice";
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
@@ -12,6 +15,20 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isAuthenticated, status } = useAuth();
   const { theme } = useTheme();
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const token = await user.getIdToken();
+        dispatch(setUser({ user, token }));
+      } else {
+        dispatch(setUser({ user: null, token: null }));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   if (status === "loading") {
     return (

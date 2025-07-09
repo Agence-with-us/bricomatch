@@ -14,10 +14,12 @@ interface AuthState {
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
   isAdmin: boolean;
+  token: string | null;
 }
 
 const initialState: AuthState = {
   user: null,
+  token: null,
   status: "idle",
   error: null,
   isAdmin: false,
@@ -64,9 +66,10 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setUser: (state, action: PayloadAction<User | null>) => {
-      state.user = action.payload;
-      state.status = action.payload ? "succeeded" : "idle";
+    setUser: (state, action: PayloadAction<{ user: User | null, token: string | null }>) => {
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+      state.status = action.payload.user ? "succeeded" : "idle";
     },
     setStatus: (state, action: PayloadAction<AuthState["status"]>) => {
       state.status = action.payload;
