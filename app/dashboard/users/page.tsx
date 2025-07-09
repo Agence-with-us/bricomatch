@@ -210,8 +210,15 @@ export default function UsersPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {new Date(user.createdAt).toLocaleDateString("fr-FR")}
+                        {user.createdAt
+                          ? new Date(user.createdAt).toLocaleDateString("fr-FR", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })
+                          : <span className="text-muted-foreground">Non disponible</span>}
                       </TableCell>
+
                       <TableCell>
                         <Button
                           variant="destructive"

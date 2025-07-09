@@ -39,8 +39,12 @@ export default function DashboardPage() {
         console.error("Erreur lors du comptage des rendez-vous :", err);
       }
     };
-    getCount();
-  }, [dispatch]);
+
+    if (user) { // ✅ attendre que l'user existe
+      getCount();
+    }
+  }, [dispatch, user]); // ✅ ajouter `user` en dépendance
+
 
   const userStats = useMemo(() => {
     const total = users.length;
