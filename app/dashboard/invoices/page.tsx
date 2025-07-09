@@ -26,7 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw } from "lucide-react";
-
+import { useRef } from "react";
 interface UserInfo {
   id: string;
   nom: string;
@@ -54,7 +54,7 @@ export default function InvoicesPage() {
 
   // Pour utilisateurs (fonction fetchUser à compléter selon ton code)
   const [users, setUsers] = useState<Record<string, UserInfo>>({});
-
+  const fetchedUserIds = useRef(new Set<string>());
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const router = useRouter();
 
@@ -113,15 +113,48 @@ export default function InvoicesPage() {
     setAppointments(dict);
   }, [appointmentsFromRedux]);
 
-  useEffect(() => {
-    invoices.forEach((invoice) => {
-      // Fetch user si pas en cache local
-      if (invoice.userId && !users[invoice.userId]) {
-        // TODO: compléter avec ta fonction fetchUser
-        // fetchUser(invoice.userId);
+
+  const fetchUser = async (userId: string) => {
+    try {
+      const token = await getAuth().currentUser?.getIdToken();
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        console.error("❌ Impossible de récupérer l'utilisateur :", res.status);
+        return;
       }
 
-      // Si rdv manquant dans redux, dispatcher fetchAppointmentById
+      const data = await res.json();
+
+      setUsers((prev) => ({
+        ...prev,
+        [userId]: {
+          id: data.id,
+          nom: data.nom,
+          prenom: data.prenom,
+          email: data.email,
+        },
+      }));
+    } catch (err) {
+      console.error("❌ Erreur fetchUser :", err);
+    }
+  };
+
+  useEffect(() => {
+    invoices.forEach((invoice) => {
+      if (
+        invoice.userId &&
+        !users[invoice.userId] &&
+        !fetchedUserIds.current.has(invoice.userId)
+      ) {
+        fetchUser(invoice.userId);
+        fetchedUserIds.current.add(invoice.userId);
+      }
+
       if (invoice.appointmentId && !appointments[invoice.appointmentId]) {
         dispatch(fetchAppointmentById(invoice.appointmentId));
       }

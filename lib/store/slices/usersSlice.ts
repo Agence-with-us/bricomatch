@@ -164,12 +164,16 @@ const usersSlice = createSlice({
       state.searchTerm = action.payload;
       if (action.payload) {
         const search = action.payload.toLowerCase();
-        state.filteredUsers = state.users.filter(
-          (u) =>
-            u.name.toLowerCase().includes(search) ||
-            u.email.toLowerCase().includes(search) ||
-            (u.phone && u.phone.includes(action.payload))
-        );
+        state.filteredUsers = state.users.filter((u) => {
+          const name = u.name || "";
+          const email = u.email || "";
+          const phone = u.phone || "";
+          return (
+            name.toLowerCase().includes(search) ||
+            email.toLowerCase().includes(search) ||
+            phone.includes(action.payload)
+          );
+        });
       } else {
         state.filteredUsers = [...state.users];
       }

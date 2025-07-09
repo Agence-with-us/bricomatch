@@ -40,16 +40,23 @@ export const signIn = createAsyncThunk<SignInResult, SignInParams>(
   "auth/signIn",
   async ({ email, password }) => {
     const authInstance = auth || getAuth();
-    const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
+    const userCredential = await signInWithEmailAndPassword(
+      authInstance,
+      email,
+      password
+    );
     const user = userCredential.user;
+    const token = await user.getIdToken();
 
-    const token = await user.getIdToken();  // <-- récupère le token ici
+    // ✅ Persist localStorage ici aussi !
+    if (typeof window !== "undefined") {
+      localStorage.setItem("token", token);
+    }
 
     console.log("✅ Connecté :", user.email);
-    return { user, token };  // retourne aussi le token
+    return { user, token };
   }
 );
-
 
 // --- Thunk: Déconnexion
 export const signOut = createAsyncThunk<void, void, { rejectValue: string }>(
@@ -57,6 +64,9 @@ export const signOut = createAsyncThunk<void, void, { rejectValue: string }>(
   async (_, thunkAPI) => {
     try {
       await firebaseSignOut(auth);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+      }
     } catch (error: any) {
       console.error("Erreur lors de la déconnexion :", error);
       return thunkAPI.rejectWithValue(error.message);
@@ -69,7 +79,10 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setUser: (state, action: PayloadAction<{ user: User | null, token: string | null }>) => {
+    setUser: (
+      state,
+      action: PayloadAction<{ user: User | null; token: string | null }>
+    ) => {
       state.user = action.payload.user;
       state.token = action.payload.token;
       state.status = action.payload.user ? "succeeded" : "idle";
@@ -80,16 +93,14 @@ const authSlice = createSlice({
     setIsAdmin: (state, action: PayloadAction<boolean>) => {
       state.isAdmin = action.payload;
     },
-    setToken: (state, action) => {
+    setToken: (state, action: PayloadAction<string | null>) => {
       state.token = action.payload;
       if (typeof window !== "undefined") {
-        localStorage.setItem("token", action.payload);
-      }
-    },
-    clearToken: (state) => {
-      state.token = null;
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
+        if (action.payload) {
+          localStorage.setItem("token", action.payload);
+        } else {
+          localStorage.removeItem("token");
+        }
       }
     },
   },
@@ -104,19 +115,19 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.status = "succeeded";
         state.error = null;
-      })  // <-- ici, enlever le point-virgule
+      })
       .addCase(signIn.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message ?? "Échec de la connexion";
       })
       .addCase(signOut.fulfilled, (state) => {
         state.user = null;
-        state.token = null; // remets aussi le token à null à la déconnexion
+        state.token = null;
         state.status = "idle";
         state.error = null;
       });
   },
 });
 
-export const { setUser, setStatus, setIsAdmin, setToken, clearToken } = authSlice.actions;
+export const { setUser, setStatus, setIsAdmin, setToken } = authSlice.actions;
 export default authSlice.reducer;

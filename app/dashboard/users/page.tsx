@@ -34,8 +34,10 @@ export default function UsersPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { filteredUsers, loading, searchTerm, hasMore, didFetch, error } =
     useSelector((state: RootState) => state.users);
+
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [sortRole, setSortRole] = useState("all");
+
   useEffect(() => {
     if (!didFetch) {
       dispatch(fetchUsers());
@@ -49,8 +51,8 @@ export default function UsersPage() {
 
   // Réinitialiser recherche et filtres
   const refreshData = () => {
-    dispatch(setFilters({ type: "all" }));
     dispatch(setSearchTerm(""));
+    setSortRole("all");
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,14 +76,16 @@ export default function UsersPage() {
         });
     }
   };
+
   const sortedUsers =
     sortRole === "all"
       ? filteredUsers
       : filteredUsers.filter((user) =>
-        sortRole === "professional"
-          ? user.type === "professional"
-          : user.type !== "professional"
+        sortRole === "PRO"
+          ? user.role === "PRO"
+          : user.role !== "PRO"
       );
+
   return (
     <DashboardLayout>
       <div className="flex items-center justify-between mb-6">
@@ -114,7 +118,10 @@ export default function UsersPage() {
               />
             </div>
             <div className="flex gap-2">
-              <label htmlFor="sort-role" className="text-sm font-medium flex items-center">
+              <label
+                htmlFor="sort-role"
+                className="text-sm font-medium flex items-center"
+              >
                 Trier par rôle :
                 <select
                   id="sort-role"
@@ -123,8 +130,8 @@ export default function UsersPage() {
                   onChange={(e) => setSortRole(e.target.value)}
                 >
                   <option value="all">Tous</option>
-                  <option value="professional">Professionnel</option>
-                  <option value="particular">Particulier</option>
+                  <option value="PRO">Professionnel</option>
+                  <option value="PARTICULIER">Particulier</option>
                 </select>
               </label>
             </div>
@@ -187,21 +194,19 @@ export default function UsersPage() {
                           </div>
                         )}
                         <div>
-                          <div>
-                            {user.prenom} {user.name}
-                          </div>
+                          {user.prenom} {user.name}
                         </div>
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Badge
                           className={
-                            user.type === "professional"
+                            user.role === "PRO"
                               ? "bg-blue-600 text-white"
                               : "bg-green-700 text-white"
                           }
                         >
-                          {user.type === "professional" ? "Professionnel" : "Particulier"}
+                          {user.role === "PRO" ? "Professionnel" : "Particulier"}
                         </Badge>
                       </TableCell>
                       <TableCell>

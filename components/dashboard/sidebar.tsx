@@ -20,6 +20,9 @@ import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { getAuth } from "firebase/auth";
+import { DialogTitle } from "@radix-ui/react-dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+
 interface SidebarProps {
   className?: string;
 }
@@ -83,16 +86,18 @@ export function Sidebar({ className }: SidebarProps) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="py-4 px-2">
-        <div className="flex items-center px-3 py-2">
-          <img
-            src="/logo.png"
-            alt="Logo Bricomatch"
-            width={32}
-            height={32}
-            className="object-contain"
-          />
-          <span className="text-lg font-bold pl-3">Bricomatch</span>
-        </div>
+        <Link href="/dashboard" onClick={() => setOpen(false)}>
+          <div className="flex items-center px-3 py-2 cursor-pointer">
+            <img
+              src="/logo.png"
+              alt="Logo Bricomatch"
+              width={32}
+              height={32}
+              className="object-contain"
+            />
+            <span className="text-lg font-bold pl-3">Bricomatch</span>
+          </div>
+        </Link>
       </div>
 
       <div className="flex-1 overflow-auto py-2">
@@ -158,6 +163,9 @@ export function Sidebar({ className }: SidebarProps) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="p-0">
+          <VisuallyHidden>
+            <DialogTitle>Menu</DialogTitle>
+          </VisuallyHidden>
           <SidebarContent />
         </SheetContent>
       </Sheet>

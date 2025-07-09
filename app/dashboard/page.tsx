@@ -44,8 +44,8 @@ export default function DashboardPage() {
 
   const userStats = useMemo(() => {
     const total = users.length;
-    const clients = users.filter((u) => u.type === "client").length;
-    const pros = users.filter((u) => u.type === "professional").length;
+    const clients = users.filter((u) => u.role?.toUpperCase() === "PARTICULIER").length;
+    const pros = users.filter((u) => u.role?.toUpperCase() === "PRO").length;
 
     const now = new Date();
     const oneMonthAgo = new Date(now.setDate(now.getDate() - 30));
