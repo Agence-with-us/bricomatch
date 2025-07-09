@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "..";
-import { DocumentData } from "firebase/firestore";
+import { DocumentData, Timestamp } from "firebase/firestore";
 
 export interface Invoice {
   id: string;
@@ -13,7 +13,7 @@ export interface Invoice {
   vatAmount: number;
   userId: string;
   userRole: "PRO" | "PARTICULIER" | string;
-  createdAt: string; // ISO string côté API
+  createdAt: Timestamp; // ISO string côté API
 }
 
 interface InvoicesState {
