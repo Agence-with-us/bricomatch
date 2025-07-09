@@ -48,60 +48,31 @@ const initialState: AppointmentsState = {
 };
 
 // ✅ COMPTE les rendez-vous
-export const countAppointments = createAsyncThunk<
-  number,
-  void,
-  { state: RootState; rejectValue: string }
->(
+export const countAppointments = createAsyncThunk<number, void, { state: RootState }>(
   "appointments/countAppointments",
-  async (_, { getState, rejectWithValue }) => {
-    try {
-      const state = getState();
-      const { filters } = state.appointments;
-      const token = state.auth.token;
+  async (_, thunkAPI) => {
+    const state = thunkAPI.getState();
+    const token = state.auth.token;
 
-      if (!token) {
-        return rejectWithValue("Pas de token dispo");
-      }
-
-      const params = new URLSearchParams();
-
-      if (filters.status && filters.status !== "all") {
-        params.append("status", filters.status);
-      }
-      if (filters.userId && filters.userType) {
-        params.append("userId", filters.userId);
-        params.append("userType", filters.userType);
-      }
-      if (filters.date.from) {
-        params.append("from", filters.date.from);
-      }
-      if (filters.date.to) {
-        params.append("to", filters.date.to);
-      }
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/appointments/count?${params.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!res.ok) throw new Error("Non autorisé");
-
-      const data = await res.json();
-      if (typeof data.count !== "number") {
-        throw new Error("Réponse invalide");
-      }
-
-      return data.count;
-    } catch (err: any) {
-      return rejectWithValue(err.message || "Erreur API");
+    if (!token) {
+      throw new Error("Pas de token dispo");
     }
+
+    const response = await fetch("/api/appointments/count", {
+      headers: {
+        Authorization: `Bearer ${token}`, // Utilisation du token dans l'en-tête
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Erreur lors du comptage des rendez-vous");
+    }
+
+    const data = await response.json();
+    return data.count;
   }
 );
+
 
 // ✅ FETCH un rdv par ID
 export const fetchAppointmentById = createAsyncThunk<
@@ -161,9 +132,9 @@ const appointmentsSlice = createSlice({
         state.loading = false;
         state.totalCount = action.payload;
       })
-      .addCase(countAppointments.rejected, (state, action) => {
+      .addCase(fetchAppointmentById.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Erreur lors du comptage";
+        state.error = action.payload ?? action.error.message ?? "Erreur lors du fetch";
       })
 
       .addCase(fetchAppointmentById.pending, (state) => {

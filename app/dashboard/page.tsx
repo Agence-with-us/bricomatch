@@ -159,10 +159,10 @@ export default function DashboardPage() {
               {invoiceStats.loading
                 ? ""
                 : `TVA : ${(invoiceStats.vatAmount / 100).toFixed(
-                    2
-                  )} €, Frais : ${(invoiceStats.platformFees / 100).toFixed(
-                    2
-                  )} €`}
+                  2
+                )} €, Frais : ${(invoiceStats.platformFees / 100).toFixed(
+                  2
+                )} €`}
             </CardDescription>
           </CardContent>
         </Card>

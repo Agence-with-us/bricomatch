@@ -32,6 +32,7 @@ interface SignInParams {
 
 interface SignInResult {
   user: User;
+  token: string;
 }
 
 // --- Thunk: Connexion
@@ -42,11 +43,13 @@ export const signIn = createAsyncThunk<SignInResult, SignInParams>(
     const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
     const user = userCredential.user;
 
+    const token = await user.getIdToken();  // <-- récupère le token ici
+
     console.log("✅ Connecté :", user.email);
-    // Pas besoin de token ici : tu le récupéreras avec getIdToken() quand tu en as besoin
-    return { user };
+    return { user, token };  // retourne aussi le token
   }
 );
+
 
 // --- Thunk: Déconnexion
 export const signOut = createAsyncThunk<void, void, { rejectValue: string }>(
@@ -85,16 +88,18 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(signIn.fulfilled, (state, action) => {
+        state.user = action.payload.user;
+        state.token = action.payload.token;
         state.status = "succeeded";
-        state.user = action.payload.user; // On garde le vrai User Firebase
         state.error = null;
-      })
+      })  // <-- ici, enlever le point-virgule
       .addCase(signIn.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message ?? "Échec de la connexion";
       })
       .addCase(signOut.fulfilled, (state) => {
         state.user = null;
+        state.token = null; // remets aussi le token à null à la déconnexion
         state.status = "idle";
         state.error = null;
       });
