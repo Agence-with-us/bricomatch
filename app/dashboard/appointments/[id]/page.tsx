@@ -55,7 +55,7 @@ export default function AppointmentDetailsPage() {
         if (!user) throw new Error("Utilisateur non authentifié");
         const token = await user.getIdToken();
 
-        const res = await fetch(`http://cc0kgscgc4s40w4kws88gg8.217.154.126.165.sslip.io/api/appointments/${id}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/appointments/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

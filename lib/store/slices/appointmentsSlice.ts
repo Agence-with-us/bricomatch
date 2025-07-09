@@ -18,7 +18,6 @@ interface Appointment {
   status: string;
   userId: string;
   userType: "client" | "professional";
-  // ... autres champs si besoin
 }
 
 interface AppointmentsState {

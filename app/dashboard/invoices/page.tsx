@@ -67,7 +67,7 @@ export default function InvoicesPage() {
       }
       try {
         const token = await user.getIdToken();
-        const res = await fetch("http://cc0kgscgc4s40w4kws88gg8.217.154.126.165.sslip.io/api/checkAdmin", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/checkAdmin`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
