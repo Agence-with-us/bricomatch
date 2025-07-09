@@ -48,24 +48,28 @@ const initialState: AppointmentsState = {
 };
 
 // ✅ COMPTE les rendez-vous
-export const countAppointments = createAsyncThunk<number, void, { state: RootState }>(
+export const countAppointments = createAsyncThunk<
+  number,
+  void,
+  { state: RootState; rejectValue: string }
+>(
   "appointments/countAppointments",
   async (_, thunkAPI) => {
     const state = thunkAPI.getState();
     const token = state.auth.token;
 
     if (!token) {
-      throw new Error("Pas de token dispo");
+      return thunkAPI.rejectWithValue("Pas de token dispo");
     }
 
     const response = await fetch("/api/appointments/count", {
       headers: {
-        Authorization: `Bearer ${token}`, // Utilisation du token dans l'en-tête
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!response.ok) {
-      throw new Error("Erreur lors du comptage des rendez-vous");
+      return thunkAPI.rejectWithValue("Erreur lors du comptage des rendez-vous");
     }
 
     const data = await response.json();
@@ -132,18 +136,16 @@ const appointmentsSlice = createSlice({
         state.loading = false;
         state.totalCount = action.payload;
       })
-      .addCase(fetchAppointmentById.rejected, (state, action) => {
+      .addCase(countAppointments.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ?? action.error.message ?? "Erreur lors du fetch";
+        state.error = action.payload ?? action.error.message ?? "Erreur lors du comptage";
       })
-
       .addCase(fetchAppointmentById.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchAppointmentById.fulfilled, (state, action) => {
         state.loading = false;
-
         const fetched = action.payload;
         const index = state.appointments.findIndex((a) => a.id === fetched.id);
         if (index >= 0) {
@@ -155,9 +157,10 @@ const appointmentsSlice = createSlice({
       })
       .addCase(fetchAppointmentById.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Erreur lors du fetch";
+        state.error = action.payload ?? action.error.message ?? "Erreur lors du fetch";
       });
-  },
+  }
+
 });
 
 export const { setFilters } = appointmentsSlice.actions;
