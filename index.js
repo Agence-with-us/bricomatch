@@ -215,8 +215,14 @@ app.get('/api/appointments/count', authenticateAdmin, async (req, res) => {
             const userField = userType === 'client' ? 'clientId' : 'proId';
             conditions.push([userField, '==', userId]);
         }
-        if (from) conditions.push(['dateTime', '>=', from]);
-        if (to) conditions.push(['dateTime', '<=', to]);
+        if (from) {
+            const fromDate = admin.firestore.Timestamp.fromDate(new Date(from));
+            conditions.push(['dateTime', '>=', fromDate]);
+        }
+        if (to) {
+            const toDate = admin.firestore.Timestamp.fromDate(new Date(to));
+            conditions.push(['dateTime', '<=', toDate]);
+        }
 
         if (conditions.length) {
             conditions.forEach(([field, op, val]) => {
@@ -299,44 +305,44 @@ app.get('/api/notifications/unread-count', authenticateAdmin, async (req, res) =
 
 // Liste des notifications (admin uniquement)
 app.get('/api/notifications', authenticateAdmin, async (req, res) => {
-  try {
-    const snapshot = await db.collection('notifications').get();
-    const notifications = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    try {
+        const snapshot = await db.collection('notifications').get();
+        const notifications = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+        }));
 
-    // Tri côté API si tu veux :
-    notifications.sort((a, b) => {
-      return new Date(b.datetime).getTime() - new Date(a.datetime).getTime();
-    });
+        // Tri côté API si tu veux :
+        notifications.sort((a, b) => {
+            return new Date(b.datetime).getTime() - new Date(a.datetime).getTime();
+        });
 
-    res.json(notifications);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Erreur serveur');
-  }
+        res.json(notifications);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erreur serveur');
+    }
 });
 
 
 // Mettre à jour le statut processed
 app.patch('/api/notifications/:id', authenticateAdmin, async (req, res) => {
-  const { id } = req.params;
-  const { processed } = req.body;
+    const { id } = req.params;
+    const { processed } = req.body;
 
-  if (typeof processed !== 'boolean') {
-    return res.status(400).send('Le champ processed doit être un booléen');
-  }
+    if (typeof processed !== 'boolean') {
+        return res.status(400).send('Le champ processed doit être un booléen');
+    }
 
-  try {
-    const notifRef = db.collection('notifications').doc(id);
-    await notifRef.update({ processed });
+    try {
+        const notifRef = db.collection('notifications').doc(id);
+        await notifRef.update({ processed });
 
-    res.json({ ok: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Erreur serveur');
-  }
+        res.json({ ok: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erreur serveur');
+    }
 });
 
 app.get('/api/debug', authenticate, (req, res) => {
