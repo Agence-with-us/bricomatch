@@ -1,34 +1,14 @@
+// app/layout.tsx (serveur)
 import './globals.css';
-import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Providers } from '@/lib/providers';
-import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
-import { useEffect } from 'react';
-import { useAppDispatch } from '@/lib/store/hooks'; // ✅ Chemin selon ton arborescence
-import { setToken } from '@/lib/store/slices/authSlice'; // ✅
+import { Toaster } from '@/components/ui/toaster';
+import ClientAuthSetup from './ClientAuthSetup';
+import { Providers } from '../lib/providers'; // assure-toi que c’est client
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const metadata: Metadata = {
-  title: 'Bricomatch Admin',
-  description: 'Administration dashboard for Bricomatch platform',
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const dispatch = useAppDispatch();
-
-  useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    if (savedToken) {
-      dispatch(setToken(savedToken));
-    }
-  }, [dispatch]);
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={inter.className}>
@@ -38,7 +18,8 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Providers>{children}</Providers>
+          <ClientAuthSetup />
+          <Providers>{children}</Providers>  {/* ici Redux Provider côté client */}
           <Toaster />
         </ThemeProvider>
       </body>
