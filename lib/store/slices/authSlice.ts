@@ -80,6 +80,18 @@ const authSlice = createSlice({
     setIsAdmin: (state, action: PayloadAction<boolean>) => {
       state.isAdmin = action.payload;
     },
+    setToken: (state, action) => {
+      state.token = action.payload;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("token", action.payload);
+      }
+    },
+    clearToken: (state) => {
+      state.token = null;
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -106,5 +118,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setUser, setStatus, setIsAdmin } = authSlice.actions;
+export const { setUser, setStatus, setIsAdmin, setToken, clearToken } = authSlice.actions;
 export default authSlice.reducer;
