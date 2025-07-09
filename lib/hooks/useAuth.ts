@@ -17,7 +17,8 @@ export function useAuth({ required = true }: { required?: boolean } = {}) {
 
   const DISABLE_AUTH = false;
   const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    dispatch(setUser(user));
+    dispatch(setUser({ user, token: user ? await user.getIdToken() : null }));
+
 
     if (user) {
       try {
@@ -59,7 +60,8 @@ export function useAuth({ required = true }: { required?: boolean } = {}) {
     dispatch(setStatus("loading"));
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      dispatch(setUser(user));
+      dispatch(setUser({ user, token: user ? await user.getIdToken() : null }));
+
 
       if (user) {
         try {
