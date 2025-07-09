@@ -1,25 +1,12 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit,
-  startAfter,
-  DocumentData,
-  doc,
-  deleteDoc,
-} from "firebase/firestore";
-import { auth } from "@/lib/firebase";
 import { RootState } from "..";
+import { DocumentData } from "firebase/firestore";
 
 interface User {
   id: string;
   type: "client" | "professional";
   name: string;
   prenom: string;
-  photoUrl?: string;
   email: string;
   createdAt: string;
   phone?: string;
@@ -32,9 +19,7 @@ interface UsersState {
   currentUser: User | null;
   lastVisible: DocumentData | null;
   searchTerm: string;
-  filters: {
-    type: "all" | "client" | "professional";
-  };
+  filters: { type: "all" | "client" | "professional" };
   loading: boolean;
   error: string | null;
   hasMore: boolean;
@@ -52,153 +37,122 @@ const initialState: UsersState = {
   currentUser: null,
   lastVisible: null,
   searchTerm: "",
-  filters: {
-    type: "all",
-  },
+  filters: { type: "all" },
   loading: false,
   error: null,
   hasMore: true,
   didFetch: false,
-  stats: {
-    totalUsers: 0,
-    clients: 0,
-    pros: 0,
-  },
+  stats: { totalUsers: 0, clients: 0, pros: 0 },
 };
 
-export const fetchUsers = createAsyncThunk(
-  "users/fetchUsers",
-  async (_, thunkAPI) => {
-    try {
-      const state = thunkAPI.getState() as RootState;
-      const user = state.auth.user;
-      const token = user && typeof user.getIdToken === 'function' ? await user.getIdToken() : null;
+// ✅ FETCH USERS
+export const fetchUsers = createAsyncThunk<
+  any,
+  void,
+  { state: RootState; rejectValue: string }
+>("users/fetchUsers", async (_, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const token = state.auth.token;
 
-      if (!token) {
-        return thunkAPI.rejectWithValue("Token manquant");
-      }
-
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/users`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error("Non autorisé");
-      }
-
-      return await res.json();
-    } catch (err: any) {
-      return thunkAPI.rejectWithValue(err.message);
+    if (!token) {
+      return rejectWithValue("Pas de token dispo");
     }
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) throw new Error("Non autorisé");
+
+    return await res.json();
+  } catch (err: any) {
+    return rejectWithValue(err.message || "Erreur API");
   }
-);
+});
 
-export const fetchUserStats = createAsyncThunk(
-  "users/fetchUserStats",
-  async (_, thunkAPI) => {
-    try {
-      const state = thunkAPI.getState() as RootState;
-      const user = state.auth.user;
-      const token = user && typeof user.getIdToken === 'function' ? await user.getIdToken() : null;
+// ✅ FETCH USER STATS
+export const fetchUserStats = createAsyncThunk<
+  any,
+  void,
+  { state: RootState; rejectValue: string }
+>("users/fetchUserStats", async (_, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const token = state.auth.token;
 
-      if (!token) {
-        return thunkAPI.rejectWithValue("Token manquant");
-      }
-
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/users/stats`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error("Non autorisé");
-      }
-
-      return await res.json();
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(error.message);
+    if (!token) {
+      return rejectWithValue("Pas de token dispo");
     }
-  }
-);
 
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/stats`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) throw new Error("Non autorisé");
+
+    return await res.json();
+  } catch (err: any) {
+    return rejectWithValue(err.message || "Erreur API");
+  }
+});
+
+// ✅ DELETE USER
 export const deleteUser = createAsyncThunk<
   string,
   string,
-  { rejectValue: string }
->("users/deleteUser", async (userId, thunkAPI) => {
+  { state: RootState; rejectValue: string }
+>("users/deleteUser", async (userId, { getState, rejectWithValue }) => {
   try {
-    const state = thunkAPI.getState() as RootState;
-    const user = state.auth.user;
-    const token = user && typeof user.getIdToken === 'function' ? await user.getIdToken() : null;
+    const state = getState();
+    const token = state.auth.token;
 
     if (!token) {
-      return thunkAPI.rejectWithValue("Token manquant");
+      return rejectWithValue("Pas de token dispo");
     }
-
 
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`,
       {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       }
     );
 
-    if (!res.ok) {
-      throw new Error("Erreur suppression");
-    }
+    if (!res.ok) throw new Error("Erreur suppression");
 
     return userId;
-  } catch (error: any) {
-    return thunkAPI.rejectWithValue(error.message);
+  } catch (err: any) {
+    return rejectWithValue(err.message || "Erreur API");
   }
 });
 
-// **NOUVEAU** thunk pour fetch un user par ID via API
+// ✅ FETCH USER BY ID
 export const fetchUserById = createAsyncThunk<
   User,
   string,
-  { rejectValue: string; state: RootState }
->("users/fetchUserById", async (userId, thunkAPI) => {
+  { state: RootState; rejectValue: string }
+>("users/fetchUserById", async (userId, { getState, rejectWithValue }) => {
   try {
-    const state = thunkAPI.getState();
-    const user = state.auth.user;
-    const token = user && typeof user.getIdToken === 'function' ? await user.getIdToken() : null;
+    const state = getState();
+    const token = state.auth.token;
 
     if (!token) {
-      return thunkAPI.rejectWithValue("Token manquant");
+      return rejectWithValue("Pas de token dispo");
     }
-
 
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`,
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       }
     );
 
-    if (!res.ok) {
-      throw new Error("Non autorisé");
-    }
+    if (!res.ok) throw new Error("Non autorisé");
 
     return await res.json();
-  } catch (error: any) {
-    return thunkAPI.rejectWithValue(error.message);
+  } catch (err: any) {
+    return rejectWithValue(err.message || "Erreur API");
   }
 });
 
@@ -208,14 +162,13 @@ const usersSlice = createSlice({
   reducers: {
     setSearchTerm: (state, action: PayloadAction<string>) => {
       state.searchTerm = action.payload;
-
       if (action.payload) {
         const search = action.payload.toLowerCase();
         state.filteredUsers = state.users.filter(
-          (user) =>
-            user.name.toLowerCase().includes(search) ||
-            user.email.toLowerCase().includes(search) ||
-            (user.phone && user.phone.includes(action.payload))
+          (u) =>
+            u.name.toLowerCase().includes(search) ||
+            u.email.toLowerCase().includes(search) ||
+            (u.phone && u.phone.includes(action.payload))
         );
       } else {
         state.filteredUsers = [...state.users];
@@ -249,41 +202,16 @@ const usersSlice = createSlice({
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.loading = false;
         state.didFetch = true;
-
-        if (state.lastVisible === null) {
-          state.users = action.payload.users;
-        } else {
-          const newUsers = action.payload.users.filter(
-            (newUser: { id: string }) =>
-              !state.users.some((u) => u.id === newUser.id)
-          );
-          state.users = [...state.users, ...newUsers];
-        }
-
-        state.lastVisible = action.payload.lastVisible;
-        state.hasMore = action.payload.hasMore;
-
-        if (state.searchTerm) {
-          const search = state.searchTerm.toLowerCase();
-          state.filteredUsers = state.users.filter(
-            (user) =>
-              user.name.toLowerCase().includes(search) ||
-              user.email.toLowerCase().includes(search) ||
-              (user.phone && user.phone.includes(state.searchTerm))
-          );
-        } else {
-          state.filteredUsers = [...state.users];
-        }
+        state.users = action.payload.users || [];
+        state.filteredUsers = [...state.users];
       })
       .addCase(fetchUsers.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = action.payload || "Erreur lors du fetch users";
       })
-
       .addCase(fetchUserStats.fulfilled, (state, action) => {
         state.stats = action.payload;
       })
-
       .addCase(deleteUser.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -299,37 +227,14 @@ const usersSlice = createSlice({
         state.loading = false;
         state.error = action.payload || "Erreur lors de la suppression";
       })
-
-      // GESTION DU FETCH USER BY ID
-      .addCase(fetchUserById.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
       .addCase(fetchUserById.fulfilled, (state, action) => {
-        state.loading = false;
-        const fetchedUser = action.payload;
-
-        const idx = state.users.findIndex((u) => u.id === fetchedUser.id);
-        if (idx >= 0) {
-          state.users[idx] = fetchedUser;
-        } else {
-          state.users.push(fetchedUser);
-        }
-
-        if (state.currentUser?.id === fetchedUser.id) {
-          state.currentUser = fetchedUser;
-        }
-
-        // Actualise filteredUsers aussi si besoin
-        const filteredIdx = state.filteredUsers.findIndex(
-          (u) => u.id === fetchedUser.id
-        );
-        if (filteredIdx >= 0) {
-          state.filteredUsers[filteredIdx] = fetchedUser;
-        }
+        const user = action.payload;
+        const idx = state.users.findIndex((u) => u.id === user.id);
+        if (idx >= 0) state.users[idx] = user;
+        else state.users.push(user);
+        state.currentUser = user;
       })
       .addCase(fetchUserById.rejected, (state, action) => {
-        state.loading = false;
         state.error = action.payload || "Erreur lors du fetch user";
       });
   },

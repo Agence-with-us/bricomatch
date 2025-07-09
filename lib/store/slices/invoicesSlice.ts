@@ -1,15 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit,
-  startAfter,
-  DocumentData,
-} from "firebase/firestore";
-import { Timestamp } from "firebase/firestore";
+import { RootState } from "..";
+import { DocumentData } from "firebase/firestore";
+
 export interface Invoice {
   id: string;
   amount: number;
@@ -21,7 +13,7 @@ export interface Invoice {
   vatAmount: number;
   userId: string;
   userRole: "PRO" | "PARTICULIER" | string;
-  createdAt: Timestamp;
+  createdAt: string; // ISO string côté API
 }
 
 interface InvoicesState {
@@ -40,42 +32,44 @@ const initialState: InvoicesState = {
   hasMore: true,
 };
 
-export const fetchInvoices = createAsyncThunk(
+export const fetchInvoices = createAsyncThunk<
+  { invoices: Invoice[]; lastVisible: DocumentData | null; hasMore: boolean },
+  { userId?: string; userRole?: string },
+  { state: RootState; rejectValue: string }
+>(
   "invoices/fetchInvoices",
-  async (
-    { userId, userRole }: { userId?: string; userRole?: string },
-    { getState, rejectWithValue }
-  ) => {
-    const state = getState() as { invoices: InvoicesState; auth: { user: any } };
-    const { lastVisible } = state.invoices;
+  async ({ userId, userRole }, { getState, rejectWithValue }) => {
     try {
-      const user = state.auth.user;
-      const token = user && typeof user.getIdToken === 'function' ? await user.getIdToken() : null;
+      const state = getState();
+      const { lastVisible } = state.invoices;
+      const token = state.auth.token;
+
+      if (!token) {
+        return rejectWithValue("Pas de token dispo");
+      }
 
       const params = new URLSearchParams();
-      if (userId) params.append('userId', userId);
-      if (userRole) params.append('userRole', userRole);
-      if (lastVisible && typeof lastVisible.id === 'string') {
-        params.append('lastInvoiceId', lastVisible.id);
+      if (userId) params.append("userId", userId);
+      if (userRole) params.append("userRole", userRole);
+      if (lastVisible && typeof lastVisible.id === "string") {
+        params.append("lastInvoiceId", lastVisible.id);
       }
 
-      const res = await fetch(`http://cc0kgscgc4s40w4kws88gg8.217.154.126.165.sslip.io/api/invoices?${params.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/invoices?${params.toString()}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      if (!res.ok) {
-        throw new Error('Non autorisé');
-      }
+      if (!res.ok) throw new Error("Non autorisé");
 
       return await res.json();
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Erreur API");
     }
   }
 );
-
 
 const invoicesSlice = createSlice({
   name: "invoices",
@@ -97,20 +91,25 @@ const invoicesSlice = createSlice({
       })
       .addCase(fetchInvoices.fulfilled, (state, action) => {
         state.loading = false;
-        if (state.lastVisible === null) {
-          state.invoices = action.payload.invoices;
+
+        const newInvoices = action.payload.invoices || [];
+        if (!state.lastVisible) {
+          state.invoices = newInvoices;
         } else {
-          const newInvoices = action.payload.invoices.filter(
-            (inv: { id: string; }) => !state.invoices.some((i) => i.id === inv.id)
-          );
-          state.invoices = [...state.invoices, ...newInvoices];
+          state.invoices = [
+            ...state.invoices,
+            ...newInvoices.filter(
+              (inv) => !state.invoices.some((i) => i.id === inv.id)
+            ),
+          ];
         }
+
         state.lastVisible = action.payload.lastVisible;
         state.hasMore = action.payload.hasMore;
       })
       .addCase(fetchInvoices.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = action.payload || "Erreur lors du fetch invoices";
       });
   },
 });

@@ -1,5 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { RootState } from "..";
 
+// Types
 interface Filters {
   status: "all" | "pending" | "confirmed" | "completed" | "cancelled";
   date: {
@@ -16,7 +18,7 @@ interface Appointment {
   status: string;
   userId: string;
   userType: "client" | "professional";
-  // ... autres propriétés
+  // ... autres champs si besoin
 }
 
 interface AppointmentsState {
@@ -24,8 +26,8 @@ interface AppointmentsState {
   filters: Filters;
   loading: boolean;
   error: string | null;
-  appointments: Appointment[];  // on stocke la liste
-  currentAppointment: Appointment | null; // pour fetchById
+  appointments: Appointment[];
+  currentAppointment: Appointment | null;
 }
 
 const initialState: AppointmentsState = {
@@ -45,27 +47,38 @@ const initialState: AppointmentsState = {
   currentAppointment: null,
 };
 
+// ✅ COMPTE les rendez-vous
 export const countAppointments = createAsyncThunk<
   number,
   void,
-  { rejectValue: string; state: { appointments: AppointmentsState; auth: { user: any } } }
+  { state: RootState; rejectValue: string }
 >(
   "appointments/countAppointments",
   async (_, { getState, rejectWithValue }) => {
     try {
       const state = getState();
       const { filters } = state.appointments;
-      const token = await state.auth.user?.getIdToken();
+      const token = state.auth.token;
+
+      if (!token) {
+        return rejectWithValue("Pas de token dispo");
+      }
 
       const params = new URLSearchParams();
 
-      if (filters.status && filters.status !== "all") params.append("status", filters.status);
+      if (filters.status && filters.status !== "all") {
+        params.append("status", filters.status);
+      }
       if (filters.userId && filters.userType) {
         params.append("userId", filters.userId);
         params.append("userType", filters.userType);
       }
-      if (filters.date.from) params.append("from", filters.date.from);
-      if (filters.date.to) params.append("to", filters.date.to);
+      if (filters.date.from) {
+        params.append("from", filters.date.from);
+      }
+      if (filters.date.to) {
+        params.append("to", filters.date.to);
+      }
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/appointments/count?${params.toString()}`,
@@ -76,29 +89,35 @@ export const countAppointments = createAsyncThunk<
         }
       );
 
-      if (!res.ok) {
-        throw new Error("Non autorisé");
-      }
+      if (!res.ok) throw new Error("Non autorisé");
 
       const data = await res.json();
+      if (typeof data.count !== "number") {
+        throw new Error("Réponse invalide");
+      }
+
       return data.count;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Erreur API");
     }
   }
 );
 
-// **NOUVEAU** thunk pour fetch un rdv par ID
+// ✅ FETCH un rdv par ID
 export const fetchAppointmentById = createAsyncThunk<
   Appointment,
   string,
-  { rejectValue: string; state: { appointments: AppointmentsState; auth: { user: any } } }
+  { state: RootState; rejectValue: string }
 >(
   "appointments/fetchAppointmentById",
   async (appointmentId, { getState, rejectWithValue }) => {
     try {
       const state = getState();
-      const token = await state.auth.user?.getIdToken();
+      const token = state.auth.token;
+
+      if (!token) {
+        return rejectWithValue("Pas de token dispo");
+      }
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/appointments/${appointmentId}`,
@@ -109,18 +128,21 @@ export const fetchAppointmentById = createAsyncThunk<
         }
       );
 
-      if (!res.ok) {
-        throw new Error("Non autorisé");
-      }
+      if (!res.ok) throw new Error("Non autorisé");
 
       const data = await res.json();
+      if (!data.appointment) {
+        throw new Error("Réponse invalide");
+      }
+
       return data.appointment;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Erreur API");
     }
   }
 );
 
+// ✅ Slice
 const appointmentsSlice = createSlice({
   name: "appointments",
   initialState,
@@ -141,35 +163,31 @@ const appointmentsSlice = createSlice({
       })
       .addCase(countAppointments.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = action.payload || "Erreur lors du comptage";
       })
 
-      // Gestion fetchAppointmentById
       .addCase(fetchAppointmentById.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchAppointmentById.fulfilled, (state, action) => {
         state.loading = false;
-        const fetchedAppointment = action.payload;
 
-        // Ajoute ou remplace dans state.appointments
-        const idx = state.appointments.findIndex((a) => a.id === fetchedAppointment.id);
-        if (idx >= 0) {
-          state.appointments[idx] = fetchedAppointment;
+        const fetched = action.payload;
+        const index = state.appointments.findIndex((a) => a.id === fetched.id);
+        if (index >= 0) {
+          state.appointments[index] = fetched;
         } else {
-          state.appointments.push(fetchedAppointment);
+          state.appointments.push(fetched);
         }
-
-        state.currentAppointment = fetchedAppointment;
+        state.currentAppointment = fetched;
       })
       .addCase(fetchAppointmentById.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Erreur lors du fetch appointment";
+        state.error = action.payload || "Erreur lors du fetch";
       });
   },
 });
 
 export const { setFilters } = appointmentsSlice.actions;
-
 export default appointmentsSlice.reducer;
