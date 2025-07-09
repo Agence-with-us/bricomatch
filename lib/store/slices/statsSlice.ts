@@ -24,14 +24,12 @@ const initialState: StatsState = {
 export const fetchStatsFromInvoices = createAsyncThunk(
   "stats/fetchStatsFromInvoices",
   async (_, thunkAPI) => {
-    const authInstance = getAuth();
-    const user = authInstance.currentUser;
+    const state = thunkAPI.getState() as RootState;
+    const token = state.auth.token;
 
-    if (!user) {
-      return thunkAPI.rejectWithValue("Utilisateur non connecté");
+    if (!token) {
+      return thunkAPI.rejectWithValue("Pas de token dispo");
     }
-
-    const token = await user.getIdToken(true); // 👈 toujours forcer le refresh
 
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/invoices/stats`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -42,6 +40,7 @@ export const fetchStatsFromInvoices = createAsyncThunk(
     return await res.json();
   }
 );
+
 
 
 const statsSlice = createSlice({
