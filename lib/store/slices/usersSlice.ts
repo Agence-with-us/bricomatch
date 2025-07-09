@@ -202,9 +202,10 @@ const usersSlice = createSlice({
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.loading = false;
         state.didFetch = true;
-        state.users = action.payload.users || [];
+        state.users = action.payload || [];
         state.filteredUsers = [...state.users];
       })
+
       .addCase(fetchUsers.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Erreur lors du fetch users";
