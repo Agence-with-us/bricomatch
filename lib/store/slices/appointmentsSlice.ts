@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "..";
+import { getAuth } from "firebase/auth";
 
 // Types
 interface Filters {
@@ -48,33 +49,35 @@ const initialState: AppointmentsState = {
 
 // ✅ COMPTE les rendez-vous
 export const countAppointments = createAsyncThunk<
-  number,
-  void,
-  { state: RootState; rejectValue: string }
+  number,  // type du retour en cas de succès
+  void,    // pas d'argument
+  { rejectValue: string } // type de la valeur rejetée
 >(
-  "appointments/countAppointments",
-  async (_, thunkAPI) => {
-    const state = thunkAPI.getState();
-    const token = state.auth.token;
+  'appointments/count',
+  async (_, { rejectWithValue }) => {
+    const auth = getAuth();
+    const user = auth.currentUser;
 
-    if (!token) {
-      return thunkAPI.rejectWithValue("Pas de token dispo");
-    }
+    if (!user) return rejectWithValue('Utilisateur non connecté');
 
-    const response = await fetch("/api/appointments/count", {
+    const token = await user.getIdToken();
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/appointments/count`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    if (!response.ok) {
-      return thunkAPI.rejectWithValue("Erreur lors du comptage des rendez-vous");
+    if (!res.ok) {
+      const errorText = await res.text();
+      return rejectWithValue(`Erreur API (${res.status}): ${errorText}`);
     }
 
-    const data = await response.json();
+    const data = await res.json();
     return data.count;
   }
 );
+
 
 
 // ✅ FETCH un rdv par ID
