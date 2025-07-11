@@ -38,6 +38,41 @@ export default function NotificationsPage() {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
+
+    const handleAppointmentAction = async (
+        appointmentId: string,
+        action: "accepter" | "refuser"
+    ) => {
+        try {
+            const user = auth.currentUser;
+            if (!user) throw new Error("Utilisateur non connecté");
+
+            const token = await getIdToken(user);
+
+            const res = await fetch(
+                `https://api.brico-match.com/appointment/${action}`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        appointmentId,
+                        type_action: action,
+                    }),
+                }
+            );
+
+            if (!res.ok) throw new Error("Erreur API");
+
+            // Recharger les notifications après action
+            fetchNotifications();
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     const fetchNotifications = async () => {
         setLoading(true);
         try {
@@ -158,30 +193,49 @@ export default function NotificationsPage() {
                                                 )}
                                             </TableCell>
                                             <TableCell>
-                                                <div className="flex gap-2">
+                                                <div className="flex flex-wrap gap-2">
                                                     <Button
-                                                        onClick={() =>
-                                                            handleToggleProcessed(notif.id, notif.processed)
-                                                        }
+                                                        onClick={() => handleToggleProcessed(notif.id, notif.processed)}
                                                     >
-                                                        {notif.processed
-                                                            ? "Marquer comme non lu"
-                                                            : "Marquer comme lu"}
+                                                        {notif.processed ? "Marquer comme non lu" : "Marquer comme lu"}
                                                     </Button>
+
                                                     {notif.appointmentId && (
                                                         <Button
                                                             variant="outline"
                                                             onClick={() =>
-                                                                router.push(
-                                                                    `/dashboard/appointments/${notif.appointmentId}`
-                                                                )
+                                                                router.push(`/dashboard/appointments/${notif.appointmentId}`)
                                                             }
                                                         >
                                                             Voir RDV
                                                         </Button>
                                                     )}
+
+                                                    {notif.appointmentId &&
+                                                        (notif.type === "SHORT_CALL_UNDER_10_MINUTES" ||
+                                                            notif.type === "LOW_RATING") && (
+                                                            <>
+                                                                <Button
+                                                                    variant="destructive"
+                                                                    onClick={() =>
+                                                                        handleAppointmentAction(notif.appointmentId!, "refuser")
+                                                                    }
+                                                                >
+                                                                    Refuser
+                                                                </Button>
+                                                                <Button
+                                                                    variant="default"
+                                                                    onClick={() =>
+                                                                        handleAppointmentAction(notif.appointmentId!, "accepter")
+                                                                    }
+                                                                >
+                                                                    Accepter
+                                                                </Button>
+                                                            </>
+                                                        )}
                                                 </div>
                                             </TableCell>
+
                                         </TableRow>
                                     ))
                                 )}
