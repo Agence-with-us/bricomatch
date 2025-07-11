@@ -18,7 +18,13 @@ export interface ReminderEntry {
 async function readReminders(): Promise<ReminderEntry[]> {
   try {
     const data = await fs.readFile(REMINDER_FILE_PATH, 'utf-8');
-    return JSON.parse(data);
+    if (!data.trim()) return [];
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      console.error('Fichier reminders.json corrompu ou vide:', e);
+      return [];
+    }
   } catch (err: any) {
     if (err.code === 'ENOENT') return [];
     throw err;
