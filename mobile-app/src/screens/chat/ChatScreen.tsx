@@ -59,6 +59,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isChatActive, setIsChatActive] = useState(true);
 
   const flatListRef = useRef<FlatList>(null);
   const currentUser = useSelector((state: RootState) => state.auth.user);
@@ -152,6 +153,19 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
       unsubscribe();
     };
   }, [currentChatId, currentUser]);
+
+  // Effect pour surveiller l'état du chat (isActive)
+  useEffect(() => {
+    if (!currentChatId) return;
+    const chatRef = dbRef(database, `chats/${currentChatId}`);
+    const unsubscribe = onValue(chatRef, (snapshot) => {
+      const chatData = snapshot.val();
+      if (chatData && typeof chatData.isActive === 'boolean') {
+        setIsChatActive(chatData.isActive);
+      }
+    });
+    return () => unsubscribe();
+  }, [currentChatId]);
 
 
   // Fonction pour trouver le chat existant entre deux utilisateurs (si n'est pas fourné : modal de appelle)
@@ -321,7 +335,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
       quality: 0.8,
     });
 
-    if (!result.cancelled && result.assets && result.assets[0].uri) {
+    if (!result.canceled && result.assets && result.assets[0].uri) {
       setSelectedImage(result.assets[0].uri);
     }
   };
@@ -330,7 +344,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
 
 
 
-  const renderMessageItem = ({ item }) => {
+  const renderMessageItem = ({ item }: { item: Message }) => {
     const isCurrentUser = item.senderId === currentUser?.id;
 
     return (
@@ -441,7 +455,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
         <TouchableOpacity
           className="p-2"
           onPress={pickImage}
-          disabled={isUploading}
+          disabled={isUploading || !isChatActive}
         >
           <Entypo name="attachment" size={24} color="black" />
         </TouchableOpacity>
@@ -450,16 +464,17 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
           className="flex-1 px-4 py-2 mx-2 bg-white max-h-24"
           value={newMessage}
           onChangeText={setNewMessage}
-          placeholder="Écrire un message"
+          placeholder={isChatActive ? "Écrire un message" : "La discussion est désactivée (rendez-vous terminé)"}
           multiline
+          editable={isChatActive}
         />
 
         <TouchableOpacity
           className={`bg-[#F95200] rounded-full w-10 h-10 justify-center items-center ${
-            (!newMessage.trim() && !selectedImage) || isUploading ? 'bg-gray-400' : ''
+            (!newMessage.trim() && !selectedImage) || isUploading || !isChatActive ? 'bg-gray-400' : ''
           }`}
           onPress={sendMessage}
-          disabled={(!newMessage.trim() && !selectedImage) || isUploading}
+          disabled={(!newMessage.trim() && !selectedImage) || isUploading || !isChatActive}
         >
           {isUploading ? (
             <ActivityIndicator size="small" color="#FFFFFF" />

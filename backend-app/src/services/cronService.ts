@@ -2,6 +2,9 @@
 import cron from 'node-cron';
 import { processEvaluations, processPendingPayouts } from './evaluationProcessingService';
 import { processExpiredPaymentInitiatedAppointments, processAppointmentReminders } from './appointmentService';
+import fs from 'fs/promises';
+import path from 'path';
+import { desactiverChatPourAppointment, createOrActivateChat } from './chatService';
 
 /**
  * Service de gestion des tâches cron
@@ -29,6 +32,7 @@ export class CronService {
         this.startExpiredPaymentInitiatedCleanupJob();
         this.startAppointmentRemindersJob();
         this.startDailyRemindersFileJob();
+        this.startChatActivationJob();
         console.log('🚀 Tous les jobs cron ont été démarrés');
     }
 
@@ -133,4 +137,32 @@ export class CronService {
         console.log('📝 Job de génération reminders.json programmé pour 05h00 chaque jour');
     }
 
+    /**
+     * Job cron pour activer/désactiver les chats selon les RDV en cours (toutes les 30s)
+     */
+    public startChatActivationJob(): void {
+        cron.schedule('*/30 * * * * *', async () => {
+            try {
+                const remindersPath = path.resolve(__dirname, '../../reminders.json');
+                const data = await fs.readFile(remindersPath, 'utf-8');
+                const reminders = JSON.parse(data);
+                const now = Date.now();
+                for (const rdv of reminders) {
+                    if (!rdv.dateTime || !rdv.duration) continue;
+                    const start = rdv.dateTime._seconds * 1000;
+                    const end = start + rdv.duration * 60000;
+                    if (now >= start && now < end) {
+                        // RDV en cours : activer le chat
+                        await createOrActivateChat(rdv.proId, rdv.clientId, rdv.id);
+                    } else {
+                        // RDV pas en cours : désactiver le chat
+                        await desactiverChatPourAppointment(rdv.id);
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur lors de l\'activation/désactivation des chats:', error);
+            }
+        });
+        console.log('💬 Job d\'activation/désactivation des chats programmé toutes les 30 secondes');
+    }
 }

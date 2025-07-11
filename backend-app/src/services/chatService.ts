@@ -34,7 +34,15 @@ export const createOrActivateChat = async (
     const existingChatId = await findExistingChat(proId, clientId);
     
     if (existingChatId) {
-      // Réactiver la discussion existante
+      // Vérifier si le chat est déjà actif et lié au bon rendez-vous
+      const chatRef = getDatabase().ref(`chats/${existingChatId}`);
+      const chatSnapshot = await chatRef.once('value');
+      const chatData = chatSnapshot.val();
+      if (chatData && chatData.isActive && chatData.appointmentId === appointmentId) {
+        // Déjà actif pour ce rendez-vous, ne rien faire
+        return existingChatId;
+      }
+      // Sinon, activer la discussion existante
       await activateExistingChat(existingChatId, appointmentId);
       return existingChatId;
     }
@@ -100,7 +108,7 @@ const activateExistingChat = async (chatId: string, appointmentId: string): Prom
     });
 
     // Ajouter un message système pour indiquer la réactivation
-    await addSystemMessage(chatId, 'La discussion a été réactivée suite à la confirmation de votre rendez-vous.');
+    await addSystemMessage(chatId, 'La discussion a été réactivée suite à la confirmation de votre rendez-vous. La messagerie sera activée uniquement pendant la durée du rendez-vous.');
     
   } catch (error) {
     console.error('Erreur lors de l\'activation du chat:', error);
@@ -147,7 +155,7 @@ const createNewChat = async (proId: string, clientId: string, appointmentId: str
       createdAt: Date.now(),
       updatedAt: Date.now(),
       appointmentId,
-      isActive: true
+      isActive: false // Désactivé par défaut
     };
 
     await newChatRef.set(chatData);
@@ -160,9 +168,8 @@ const createNewChat = async (proId: string, clientId: string, appointmentId: str
     
     await getDatabase().ref().update(updates);
 
-    // Ajouter un message de bienvenue
-    const welcomeMessage = `Bonjour ! Cette discussion a été créée suite à la confirmation de votre rendez-vous. ${proData.nom} ${proData.prenom} et ${clientData.nom} ${clientData.prenom}, vous pouvez maintenant échanger directement.`;
-    
+    // Ajouter un message de bienvenue spécifique
+    const welcomeMessage = `Bonjour ! Cette discussion a été créée suite à la confirmation de votre rendez-vous.\nLa messagerie sera activée uniquement pendant la durée du rendez-vous.`;
     await addSystemMessage(chatId, welcomeMessage);
 
     return chatId;
@@ -232,6 +239,32 @@ export const markChatAsRead = async (chatId: string, userId: string): Promise<vo
     await participantRef.set(Date.now());
   } catch (error) {
     console.error('Erreur lors du marquage comme lu:', error);
+    throw error;
+  }
+};
+
+/**
+ * Désactiver le chat lié à un rendez-vous (isActive: false)
+ */
+export const desactiverChatPourAppointment = async (appointmentId: string): Promise<void> => {
+  try {
+    // Chercher tous les chats liés à ce rendez-vous
+    const chatsRef = getDatabase().ref('chats');
+    const snapshot = await chatsRef.orderByChild('appointmentId').equalTo(appointmentId).once('value');
+    if (!snapshot.exists()) return;
+    const chats = snapshot.val();
+    for (const chatId of Object.keys(chats)) {
+      const chatRef = getDatabase().ref(`chats/${chatId}`);
+      const chatData = chats[chatId];
+      if (chatData && chatData.isActive === false) {
+        // Déjà inactif, ne rien faire
+        continue;
+      }
+      await chatRef.update({ isActive: false, updatedAt: Date.now() });
+      await addSystemMessage(chatId, 'La discussion a été désactivée car le rendez-vous est terminé.');
+    }
+  } catch (error) {
+    console.error('Erreur lors de la désactivation du chat pour le rendez-vous:', error);
     throw error;
   }
 };
