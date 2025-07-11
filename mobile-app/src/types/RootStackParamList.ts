@@ -30,5 +30,6 @@ export type RootStackParamList = {
     Profile: { userId: string }; // Nécessite un userId pour accéder au profil
     Services: undefined; // Pas de paramètres pour les paramètres
     Appointments: undefined;
+    ForgotPassword: undefined;
     CreateAppointment: undefined;
 };

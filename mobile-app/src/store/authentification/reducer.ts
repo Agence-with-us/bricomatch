@@ -143,6 +143,20 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null; // 🔹 Réinitialise l'erreur
     },
+
+    // Réinitialisation du mot de passe
+    resetPasswordRequest: (state, action: PayloadAction<{ email: string }>) => {
+      state.loading = true;
+      state.error = null;
+    },
+    resetPasswordSuccess: (state) => {
+      state.loading = false;
+      state.error = null;
+    },
+    resetPasswordFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
   }
 });
 
@@ -170,7 +184,11 @@ export const {
   setTempUserData,
   clearError,
   storeFcmToken,
-  clearFcmToken
+  clearFcmToken,
+  // Ajout actions reset password
+  resetPasswordRequest,
+  resetPasswordSuccess,
+  resetPasswordFailure
 } = authSlice.actions;
 
 // Export du reducer

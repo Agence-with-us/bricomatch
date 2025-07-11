@@ -9,6 +9,7 @@ import { Platform, StatusBar, View } from 'react-native';
 import LoginScreen from "../screens/authentification/LoginScreen";
 import RegisterScreen from "../screens/authentification/RegisterScreen";
 import CompleteProfileScreen from '../components/elements/auth/CompleteProfileScreen';
+import ForgotPasswordScreen from '../components/elements/auth/ForgotPasswordScreen';
 
 // Écrans principaux
 import HomeScreen from "../screens/Accueil/HomeScreen";
@@ -157,10 +158,11 @@ const AppNavigator = () => {
                     <View style={{ flex: 1 }}>
                         <Stack.Navigator screenOptions={{ headerShown: false }}>
                             <Stack.Screen name="Home" component={HomeScreen} />
-                            <Stack.Screen name="Login" component={LoginScreen} />
+                            <Stack.Screen name="Login" component={LoginScreen as any} />
                             <Stack.Screen name="Register" component={RegisterScreen} />
                             <Stack.Screen name="AppLandingScreen" component={AppLandingScreen} />
                             <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
+                            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen as any}  />
 
                             <Stack.Screen
                                 name="Appointments"

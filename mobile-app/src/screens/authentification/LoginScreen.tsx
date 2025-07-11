@@ -8,6 +8,7 @@ import {
   Image,
   SafeAreaView,
   Animated,
+  ScrollView,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store/store';
@@ -23,14 +24,19 @@ import GoBack from '../../components/common/GoBack';
 import OutlinedTextInput from '../../components/common/OutlinedTextInput';
 import { navigate } from '../../services/navigationService';
 import AppleSignInComponent from '../../components/elements/auth/AppleSignInComponent';
-import LogoSpinner from '../../components/common/LogoSpinner';
 
 const offsetOrangeSplash = require('../../../assets/splash-bg-offset-orange.png')
 const logoBricomatchOrange = require('../../../assets/logo-bricomatch-orange.png')
 
 const LoginScreen = ({ route }: { route: { params: { role: string } } }) => {
+
+  // Redux
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state: RootState) => state.auth);
+
+  // plus besoin ici, géré dans le composant modal
+
+
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -64,6 +70,7 @@ const LoginScreen = ({ route }: { route: { params: { role: string } } }) => {
   };
 
   const handleLogin = () => {
+    if (error) dispatch(clearError());
     if (validateInputs()) {
       dispatch(loginRequest({ email, password }));
     }
@@ -109,6 +116,7 @@ const LoginScreen = ({ route }: { route: { params: { role: string } } }) => {
 
       {/* Container principal avec padding consistant */}
       <SafeAreaView className="flex-1">
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <View className="flex-1 px-6">
           {/* En-tête */}
           <View className="w-full flex-row justify-between items-center mt-4">
@@ -132,28 +140,30 @@ const LoginScreen = ({ route }: { route: { params: { role: string } } }) => {
             <Text className="text-muted text-lg ">{route.params.role === 'PARTICULIER' ? 'En tant que particulier' : 'En tant que professionnel'}</Text>
 
             {/* Message d'erreur avec animation subtile */}
-            {error && (
+            {error || emailError || passwordError && (
               <Animated.View
                 className="bg-red-100 p-4 rounded-xl mb-5 border border-red-200"
               >
-                <Text className="text-red-600">{error}</Text>
+                {error && <Text className="text-red-600">• {error}</Text>}
+                {emailError && <Text className="text-red-600">• {emailError}</Text>}
+                {passwordError && <Text className="text-red-600">• {passwordError}</Text>}
               </Animated.View>
             )}
 
             {/* Champs de formulaire avec espacement amélioré */}
-            <View className="space-y-4">
-              <View>
+            <View className="mt-5">
+              <View className="mb-2">
                 <OutlinedTextInput
+                  className=""
                   label="Email"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   returnKeyType="next"
+                  onFocus={() => { setEmailError(''); setPasswordError(''); if (error) dispatch(clearError()); }}
                 />
-                {emailError &&
-                  <Text className="text-red-500 text-sm mt-1 ml-1">{emailError}</Text>
-                }
+               
               </View>
 
               <View>
@@ -163,25 +173,33 @@ const LoginScreen = ({ route }: { route: { params: { role: string } } }) => {
                   onChangeText={setPassword}
                   secureTextEntry
                   returnKeyType="done"
+                  onFocus={() => { setPasswordError(''); setEmailError(''); if (error) dispatch(clearError()); }}
                 />
-                {passwordError &&
-                  <Text className="text-red-500 text-sm mt-1 ml-1">{passwordError}</Text>
-                }
+                
               </View>
             </View>
 
             {/* Bouton de connexion principal avec état de chargement */}
             <TouchableOpacity
               onPress={handleLogin}
-              className={`rounded-full bg-secondary w-full items-center justify-center h-14 mt-6 ${loading ? 'bg-orange-200 opacity-90' : ''}`}
+              className={`rounded-full bg-secondary w-full items-center justify-center h-14 mt-4 ${loading ? 'bg-orange-200 opacity-90' : ''}`}
               disabled={loading}
               activeOpacity={0.8}
             >
               <Text className="text-accent font-bold text-base">{`${!loading ? 'Se connecter' : 'Connexion ...'}`}</Text>
             </TouchableOpacity>
 
+             {/* Lien mot de passe oublié */}
+             <TouchableOpacity
+                className="mx-auto my-4"
+                onPress={() => { dispatch(clearError()); navigate('ForgotPassword'); }}
+                activeOpacity={0.7}
+              >
+                <Text className="text-secondary text-sm font-semibold">Mot de passe oublié ?</Text>
+              </TouchableOpacity>
+
             {/* Séparateur avec texte */}
-            <View className="flex-row items-center my-6">
+            <View className="flex-row items-center mb-4">
               <View className="flex-1 h-px bg-gray-300" />
               <Text className="mx-4 text-gray-500">ou</Text>
               <View className="flex-1 h-px bg-gray-300" />
@@ -208,14 +226,8 @@ const LoginScreen = ({ route }: { route: { params: { role: string } } }) => {
             </TouchableOpacity>
           </View>
 
-          <LogoSpinner
-            visible={loading}
-            message="Connexion en cours..."
-            rotationDuration={1500}
-
-          />
         </View>
-
+        </ScrollView>
       </SafeAreaView>
 
     </KeyboardAvoidingView>

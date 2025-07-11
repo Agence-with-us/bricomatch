@@ -7,7 +7,8 @@ import {
   signOut,
   GoogleAuthProvider,
   signInWithCredential,
-  OAuthProvider
+  OAuthProvider,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore';
 
@@ -42,6 +43,9 @@ import {
   loginWithAppleRequest,
   loginWithGoogleRequest,
   setTempUserData,
+  resetPasswordRequest,
+  resetPasswordSuccess,
+  resetPasswordFailure,
 } from './reducer';
 import {
   LoginRequestPayload,
@@ -773,6 +777,33 @@ function* checkAuthStatusSaga(): SagaIterator {
     yield put(loginFailure('Erreur lors de la vérification de l\'authentification: ' + error.message));
   }
 }
+
+// Saga pour la réinitialisation du mot de passe
+function* resetPasswordSaga(action: PayloadAction<{ email: string }>): SagaIterator {
+  try {
+    const { email } = action.payload;
+    console.log('resetPasswordSaga', email);
+    const response = yield call(sendPasswordResetEmail, auth, email);
+    console.log('response', response);
+    console.log('resetPasswordSuccess');
+    yield put(resetPasswordSuccess());
+    showToast('Si un compte existe avec cette adresse, vous recevrez un email de réinitialisation', 'Vous pouvez maintenant fermer cette page', 'success');
+  } catch (error: any) {
+    console.log('resetPasswordFailure', error);
+    let errorMessage = 'Erreur lors de la réinitialisation du mot de passe.';
+    switch (error.code) {
+      case 'auth/user-not-found':
+        errorMessage = "Aucun compte n'est associé à cet email.";
+        break;
+      case 'auth/invalid-email':
+        errorMessage = "Format d'email invalide.";
+        break;
+    }
+    showToast('erreur lors de la réinitialisation du mot de passe', errorMessage, 'error');
+    yield put(resetPasswordFailure(errorMessage));
+  }
+}
+
 // Watcher saga pour surveiller les actions d'authentification
 export function* watchAuthActions() {
   yield takeEvery(loginRequest.type, loginSaga);
@@ -783,5 +814,6 @@ export function* watchAuthActions() {
   yield takeEvery(completeProfileRequest.type, completeProfileSaga);
   yield takeEvery(loginWithAppleRequest.type, loginWithAppleSaga);
   yield takeEvery(loginWithGoogleRequest.type, loginWithGoogleSaga);
+  yield takeEvery(resetPasswordRequest.type, resetPasswordSaga);
 }
 

@@ -14,6 +14,7 @@ export default {
       resizeMode: 'cover',
       backgroundColor: '#ffffff',
     },
+
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.bricomatch.app',
@@ -36,6 +37,9 @@ export default {
         foregroundImage: './assets/icon-bricomatch-1024.png',
         backgroundColor: '#F95200',
       },
+      notification: {
+        icon: "./assets/ic_icon_75.png"
+            },
       permissions: [
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.CAMERA",
@@ -91,9 +95,9 @@ export default {
         "expo-build-properties",
         {
           android: {
-            compileSdkVersion: 34, // Ajouté
-            targetSdkVersion: 34,  // Ajouté
-            buildToolsVersion: "34.0.0" // Ajouté
+            compileSdkVersion: 35,
+            targetSdkVersion: 35,
+            buildToolsVersion: "35.0.0"
           },
           ios: {
             useFrameworks: "static",
@@ -104,11 +108,25 @@ export default {
       [
         "expo-notifications",
         {
-          icon: "./assets/icon-bricomatch-96.png",
-          defaultChannel: "default"
-        }
+          icon: "./assets/ic_icon_75.png"        }
       ]
     ],
+    doctor: {
+      reactNativeDirectoryCheck: {
+        exclude: [
+          "react-native-incall-manager",
+          "react-native-webrtc",
+          "redux-persist",
+          "@config-plugins/react-native-webrtc",
+          "base64-arraybuffer",
+          "dotenv",
+          "firebase",
+          "lodash",
+          "react-native-vector-icons",
+          "redux-saga"
+        ]
+      }
+    },
     scheme: "bricomatch"
   },
 };
