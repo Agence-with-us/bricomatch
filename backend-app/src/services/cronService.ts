@@ -145,7 +145,14 @@ export class CronService {
             try {
                 const remindersPath = path.resolve(__dirname, '../../reminders.json');
                 const data = await fs.readFile(remindersPath, 'utf-8');
-                const reminders = JSON.parse(data);
+                if (!data.trim()) return; // Fichier vide
+                let reminders = [];
+                try {
+                  reminders = JSON.parse(data);
+                } catch (e) {
+                  console.error('Fichier reminders.json corrompu ou vide:', e);
+                  return;
+                }
                 const now = Date.now();
                 for (const rdv of reminders) {
                     if (!rdv.dateTime || !rdv.duration) continue;

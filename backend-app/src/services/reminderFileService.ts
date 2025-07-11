@@ -58,6 +58,19 @@ export async function updateReminder(appointment: ReminderEntry): Promise<void> 
   }
 }
 
-export async function getReminders(): Promise<ReminderEntry[]> {
-  return readReminders();
-} 
+export const getReminders = async (): Promise<any[]> => {
+  const remindersPath = path.resolve(__dirname, '../../reminders.json');
+  try {
+    const data = await fs.readFile(remindersPath, 'utf-8');
+    if (!data.trim()) return [];
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      console.error('Fichier reminders.json corrompu ou vide:', e);
+      return [];
+    }
+  } catch (e) {
+    // Fichier manquant ou autre erreur
+    return [];
+  }
+}; 
